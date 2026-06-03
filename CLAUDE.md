@@ -9,7 +9,8 @@ adapters, no pack, no org-specific hard-locks.
 
 ## Commands
 - Run the Phase-0 gate: `cd plugins/shipwithai-fixkit-core && node tests/run-all.js` (exit 0 = green).
-- The stub fixture's runner: `node plugins/shipwithai-fixkit-core/evals/fixtures/stub-adapter/buggy.test.js`.
+- The stub fixture's lifecycle: `node …/stub-adapter/reproduce.test.js` (fails on `buggy.js`) then
+  `node …/stub-adapter/verify.test.js` (passes on `fixed.js`).
 
 ## Architecture rules
 - Layering: Commands → Skills → References/Assets. No upward imports.

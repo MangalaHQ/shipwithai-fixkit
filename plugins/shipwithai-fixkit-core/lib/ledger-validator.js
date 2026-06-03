@@ -58,6 +58,12 @@ function validateLedger(l) {
     if (blank(ver.evidence)) v.push({ code: 'INTEGRITY_EVIDENCE_EMPTY', message: 'closed requires non-empty verification.evidence' });
     if (blank(ver.verified_by)) v.push({ code: 'INTEGRITY_VERIFIER_MISSING', message: 'closed requires a named verification.verified_by' });
   }
+  // Fix-recorded (success path): a verified/closed bug must record WHAT change was applied.
+  // Symmetric to the Iron Law (root_cause gates FIX-entry; fix gates VERIFY/CLOSE-entry).
+  // Scoped to verified/closed so the ASSIST `candidate` and `escalated` paths are unaffected.
+  if ((state === 'verified' || state === 'closed') && blank(l.fix)) {
+    v.push({ code: 'FIX_NOT_RECORDED', message: `state '${state}' requires a non-empty fix (what change was applied)` });
+  }
   // ASSIST ceiling: no runner -> no auto-close -> handoff/v0 (max candidate).
   if (state === 'closed' && tier(l) === 'ASSIST') {
     v.push({ code: 'ASSIST_CANNOT_CLOSE', message: 'ASSIST capability_tier cannot reach closed (max candidate)' });
@@ -128,6 +134,7 @@ function applyTransition(ledger, event, payload) {
       if (!PREDECESSORS.enter_verified.includes(cur)) v.push({ code: 'ILLEGAL_TRANSITION', message: `cannot enter_verified from '${cur}'` });
       // Defense-in-depth: the Iron Law also holds at verify (fixed/candidate are already gated).
       if (blank(l.root_cause)) v.push({ code: 'IRON_LAW_FIX_BEFORE_ROOT_CAUSE', message: 'enter_verified refused: root_cause is empty (Iron Law)' });
+      if (blank(l.fix)) v.push({ code: 'FIX_NOT_RECORDED', message: 'enter_verified refused: fix is empty (record the applied change)' });
       if (v.length) return refuse(v);
       l.state = 'verified';
       return { ok: true, ledger: l, violations: [] };
@@ -137,6 +144,7 @@ function applyTransition(ledger, event, payload) {
       if (!PREDECESSORS.close.includes(cur)) v.push({ code: 'ILLEGAL_TRANSITION', message: `cannot close from '${cur}'` });
       if (blank(l.verification.evidence)) v.push({ code: 'INTEGRITY_EVIDENCE_EMPTY', message: 'close refused: verification.evidence is empty' });
       if (blank(l.verification.verified_by)) v.push({ code: 'INTEGRITY_VERIFIER_MISSING', message: 'close refused: verification.verified_by is missing' });
+      if (blank(l.fix)) v.push({ code: 'FIX_NOT_RECORDED', message: 'close refused: fix is empty (record the applied change)' });
       if (tier(l) === 'ASSIST') v.push({ code: 'ASSIST_CANNOT_CLOSE', message: 'close refused: ASSIST tier (use handoff/v0 -> candidate)' });
       if (v.length) return refuse(v);
       l.state = 'closed';

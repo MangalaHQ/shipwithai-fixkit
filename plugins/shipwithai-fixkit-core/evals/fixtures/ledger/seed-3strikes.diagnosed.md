@@ -6,6 +6,7 @@ severity: sev2
 state: diagnosed
 root_cause: "hypothesis under test; three fix attempts will be simulated"
 root_cause_layer: Logic
+fix: ""
 3_strikes_count: 0
 verification:
   method: test-run

@@ -6,6 +6,7 @@ severity: sev3
 state: closed
 root_cause: "missing client:* hydration directive on the reactions component"
 root_cause_layer: UI
+fix: "add client:visible to the ReactionsBar island"
 3_strikes_count: 0
 verification:
   method: browser-assertion

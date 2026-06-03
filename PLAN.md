@@ -111,10 +111,12 @@ shipwithai-fixkit/
         │       └── linters.js           # BLOCKING: line-limits incl. inline-code≤20, "does NOT do" presence, ≥1 user-invocable:false, evals 3/2 split+schema, 4-key version-sync
         └── evals/
             └── fixtures/                # handoff §0.2 fixture home (NOT a real adapter; test scaffolding only)
-                ├── stub-adapter/
+                ├── stub-adapter/        # (build note: split into buggy/fixed + reproduce/verify per fresh-critic Minor #1, so check #1 is a runnable lifecycle)
                 │   ├── README.md        # what this stub fixture simulates (a Logic bug + a test-runner) — NOT a real adapter
-                │   ├── buggy.js         # synthetic logic bug (wrong output)
-                │   └── buggy.test.js    # failing test that passes after the fix (happy-path evidence)
+                │   ├── buggy.js         # synthetic logic bug in FAILING form (wrong output)
+                │   ├── fixed.js         # the fix (smallest change)
+                │   ├── reproduce.test.js # runs vs buggy.js → FAILS (the reproduction)
+                │   └── verify.test.js   # runs vs fixed.js → PASSES (the verification evidence + guard)
                 └── ledger/
                     ├── happy-path.closed.md            # open→reproduced→diagnosed→fixed→verified→closed → validateLedger ACCEPTS (check #1)
                     ├── neg-integrity.empty-evidence.md # closed + evidence "" → validateLedger REJECTS (INTEGRITY_EVIDENCE_EMPTY) — invariant (check #2)

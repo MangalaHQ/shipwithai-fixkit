@@ -116,6 +116,39 @@ section('6. Honesty invariants — ASSIST ceiling + layer-proof binding');
   assert(!b.ok && hasCode(b, 'VERIFICATION_LAYER_MISMATCH'), 'UI bug cannot close on source-diff (VERIFICATION_LAYER_MISMATCH)', JSON.stringify(b.violations));
 }
 
+// 6b. CLOSE-PATH TRANSITION GUARDS (the runtime chokepoint the orchestrator calls) -----------
+section('6b. close guard (transition surface) + fix-recorded');
+{
+  // A fully-satisfied verified ledger that `close` should accept.
+  const okBase = () => ({
+    state: 'verified', symptom_layer: 'Logic', root_cause: 'off-by-one', fix: 'seed accumulator at 0',
+    verification: { method: 'test-run', capability_tier: 'FULL', evidence: 'suite green', verified_by: 'logic-bug-agent' },
+  });
+  const closeOf = (mut) => { const l = okBase(); mut(l); return applyTransition(l, 'close'); };
+
+  const control = applyTransition(okBase(), 'close');
+  assert(control.ok && control.ledger.state === 'closed', 'control: fully-satisfied close SUCCEEDS via applyTransition');
+
+  const noEvidence = closeOf((l) => { l.verification.evidence = ''; });
+  assert(!noEvidence.ok && hasCode(noEvidence, 'INTEGRITY_EVIDENCE_EMPTY'), 'close REFUSED on empty evidence (transition surface)', JSON.stringify(noEvidence.violations));
+
+  const noVerifier = closeOf((l) => { l.verification.verified_by = ''; });
+  assert(!noVerifier.ok && hasCode(noVerifier, 'INTEGRITY_VERIFIER_MISSING'), 'close REFUSED on missing verified_by (transition surface)', JSON.stringify(noVerifier.violations));
+
+  const assist = closeOf((l) => { l.verification.capability_tier = 'ASSIST'; });
+  assert(!assist.ok && hasCode(assist, 'ASSIST_CANNOT_CLOSE'), 'close REFUSED for ASSIST tier (transition surface)', JSON.stringify(assist.violations));
+
+  // fix-recorded (F1): close and enter_verified refuse when `fix` is empty; auditor agrees.
+  const noFixClose = closeOf((l) => { l.fix = ''; });
+  assert(!noFixClose.ok && hasCode(noFixClose, 'FIX_NOT_RECORDED'), 'close REFUSED when fix is empty (FIX_NOT_RECORDED)', JSON.stringify(noFixClose.violations));
+
+  const noFixVerify = applyTransition({ state: 'fixed', root_cause: 'rc', fix: '', verification: {} }, 'enter_verified');
+  assert(!noFixVerify.ok && hasCode(noFixVerify, 'FIX_NOT_RECORDED'), 'enter_verified REFUSED when fix is empty (FIX_NOT_RECORDED)', JSON.stringify(noFixVerify.violations));
+
+  const auditNoFix = validateLedger({ state: 'closed', symptom_layer: 'Logic', root_cause: 'rc', fix: '', verification: { method: 'test-run', capability_tier: 'FULL', evidence: 'e', verified_by: 'v' } });
+  assert(!auditNoFix.ok && hasCode(auditNoFix, 'FIX_NOT_RECORDED'), 'validateLedger flags closed-without-fix (FIX_NOT_RECORDED)', JSON.stringify(auditNoFix.violations));
+}
+
 // 7. CONVENTION + EVAL-SCHEMA LINTERS (BLOCKING) ----------------------------
 section('7. Convention + eval-schema linters');
 function walkSkillFiles() {

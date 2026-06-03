@@ -6,6 +6,7 @@ severity: sev2
 state: diagnosed
 root_cause: ""
 root_cause_layer: ""
+fix: ""
 3_strikes_count: 0
 verification:
   method: test-run

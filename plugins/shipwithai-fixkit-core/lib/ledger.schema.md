@@ -16,6 +16,7 @@ auditor for any ledger is `lib/ledger-validator.js` (`validateLedger`).
 | `state` | enum | see lifecycle below |
 | `root_cause` | string | written at diagnosis; empty until then |
 | `root_cause_layer` | enum | `UI` \| `Logic` \| `System` \| `upstream` (Axis B); empty until diagnosis |
+| `fix` | string | what change was applied; empty until the FIX step. Required (non-empty) on the `verified`/`closed` success path; may stay empty on `candidate`/`escalated` |
 | `3_strikes_count` | integer | failed-fix counter |
 | `verification` | object | `{ method, capability_tier, evidence, verified_by }` |
 | `verification.method` | string | layer-appropriate proof (e.g. `test-run`, `computed-style`, `instrumented-boundary`) |
@@ -47,6 +48,7 @@ open -> reproduced -> diagnosed -> (gated) -> fixed | candidate -> verified -> c
 | Guard | Rule code | Meaning |
 |---|---|---|
 | Iron Law | `IRON_LAW_FIX_BEFORE_ROOT_CAUSE` | cannot enter `fixed`/`candidate` (or sit at any post-fix state) without a non-empty `root_cause` |
+| Fix recorded | `FIX_NOT_RECORDED` | cannot enter `verified`/`closed` without a non-empty `fix` (what change was applied) — the success-path twin of the Iron Law |
 | Integrity (evidence) | `INTEGRITY_EVIDENCE_EMPTY` | `closed` requires non-empty `verification.evidence` |
 | Integrity (verifier) | `INTEGRITY_VERIFIER_MISSING` | `closed` requires a named `verification.verified_by` |
 | ASSIST ceiling | `ASSIST_CANNOT_CLOSE` | an `ASSIST` ledger may not be `closed` (max `candidate`) |

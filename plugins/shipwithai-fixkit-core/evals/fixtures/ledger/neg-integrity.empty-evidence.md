@@ -6,6 +6,7 @@ severity: sev2
 state: closed
 root_cause: "same off-by-one as BUG-0001"
 root_cause_layer: Logic
+fix: "seed the accumulator at 0"
 3_strikes_count: 0
 verification:
   method: test-run

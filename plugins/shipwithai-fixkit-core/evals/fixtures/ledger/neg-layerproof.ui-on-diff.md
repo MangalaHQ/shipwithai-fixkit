@@ -6,6 +6,7 @@ severity: sev3
 state: closed
 root_cause: "pre overflow rule missing; code block scrolls horizontally"
 root_cause_layer: UI
+fix: "add overflow-x:auto to the pre rule"
 3_strikes_count: 0
 verification:
   method: source-diff

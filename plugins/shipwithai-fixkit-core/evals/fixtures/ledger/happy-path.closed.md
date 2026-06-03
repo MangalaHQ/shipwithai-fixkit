@@ -6,6 +6,7 @@ severity: sev2
 state: closed
 root_cause: "sum() seeded the accumulator at 1 instead of 0 (off-by-one), inflating every total by 1"
 root_cause_layer: Logic
+fix: "seed the accumulator at 0 (fixed.js); smallest change at the root cause"
 3_strikes_count: 0
 verification:
   method: test-run

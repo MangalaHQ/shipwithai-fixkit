@@ -1,0 +1,71 @@
+{
+  "version": "1.2",
+  "tier": "full",
+  "stack": {
+    "language": "Markdown + JSON + JavaScript (zero-dep Node)",
+    "framework": "ShipWithAI Claude Code plugin standard",
+    "build_tool": "none",
+    "test_framework": "node (plugins/shipwithai-fixkit-core/tests/run-all.js)",
+    "package_manager": "none",
+    "detected_tools": []
+  },
+  "project": {
+    "name": "shipwithai-fixkit",
+    "type": "monorepo",
+    "team_size": 1,
+    "stage": "active"
+  },
+  "architecture": {
+    "style": "modular-monolith",
+    "key_layers": [
+      { "name": "Orchestrator", "dir": "plugins/shipwithai-fixkit-core/commands/", "responsibility": "fix.md — main-thread bug loop: intake -> classify -> dispatch -> gate -> verify -> close" },
+      { "name": "Skills", "dir": "plugins/shipwithai-fixkit-core/skills/", "responsibility": "triage (Axis-A), spine (vendored), verification, regression-guard" },
+      { "name": "Agents", "dir": "plugins/shipwithai-fixkit-core/agents/", "responsibility": "isolated UI / Logic / System layer-fixers" },
+      { "name": "Trust anchor", "dir": "plugins/shipwithai-fixkit-core/lib/", "responsibility": "ledger-validator.js — the ledger state machine (validateLedger + applyTransition)" },
+      { "name": "Gate", "dir": "plugins/shipwithai-fixkit-core/tests/", "responsibility": "run-all.js — deterministic Phase-0 gate over fixtures + linters" },
+      { "name": "Harness", "dir": ".claude/", "responsibility": "settings.json, hooks/, agents/, memory/, starter-context.json" }
+    ],
+    "entry_points": ["plugins/shipwithai-fixkit-core/commands/fix.md", "plugins/*/manifest.json"],
+    "external_deps": [],
+    "gotchas": [
+      "lib/ledger-validator.js + tests/run-all.js — the deterministic trust anchor; change tests-first, never weaken a guard",
+      "NOTICE — vendored-spine (superpowers:systematic-debugging) MIT attribution; keep in sync with skills/spine/SKILL.md",
+      "manifest.json — must stay in sync with skills/ subdirectories",
+      ".claude-plugin/*.json + root marketplace.json — 4-key version sync",
+      "evals/fixtures/ledger/*.md — the negative tests; each fixture must isolate ONE violation"
+    ],
+    "build_order": [],
+    "test_isolation": [],
+    "sensitive_areas": [
+      "lib/ledger-validator.js — the state machine guarding Iron Law / integrity / 3-strikes",
+      "tests/run-all.js — the gate; its exit code is CI's blocking signal",
+      "NOTICE + skills/spine/SKILL.md — vendored attribution",
+      ".claude-plugin/ + manifest.json — registry + version sync",
+      "docs/adr/ — Architecture Decision Records",
+      ".claude/hooks/*.py — Python safety hooks, must not be removed or broken"
+    ]
+  },
+  "conventions": {
+    "formatter": "none",
+    "branch_strategy": "gitflow",
+    "commit_format": "conventional",
+    "coverage_target": "n/a",
+    "workflow_gates": ["plan-before-code", "tests-first", "code-review", "security-review"]
+  },
+  "permissions": {
+    "preset": "general",
+    "disallowed_tools": [],
+    "readonly_paths": []
+  },
+  "hooks_selected": [],
+  "mcp_selected": ["github"],
+  "agents_selected": ["drift-monitor"],
+  "ssot": {
+    "adr": true,
+    "codemaps": true
+  },
+  "observability": {
+    "enabled": true
+  },
+  "collected_at": "2026-06-03T00:00:00Z"
+}

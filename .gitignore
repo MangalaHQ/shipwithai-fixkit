@@ -1,0 +1,8 @@
+.omc/
+.DS_Store
+node_modules/
+*.log
+
+# transient / not part of the zero-dep plugin
+.claude/scheduled_tasks.lock
+package-lock.json

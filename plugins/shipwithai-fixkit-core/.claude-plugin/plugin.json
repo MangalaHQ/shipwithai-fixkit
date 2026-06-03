@@ -1,0 +1,19 @@
+{
+  "name": "shipwithai-fixkit-core",
+  "description": "Stack-agnostic, layer-aware bug-fix engine. Classifies bugs by symptom layer (UI/Logic/System), debugs on a vendored systematic-debugging spine, and closes only on layer-appropriate proof. Iron Law (no fix before root cause) and the integrity guard are enforced by a ledger state machine.",
+  "version": "0.1.0",
+  "author": {
+    "name": "ShipWithAI",
+    "url": "https://shipwithai.io"
+  },
+  "homepage": "https://shipwithai.io/plugins/fixkit",
+  "repository": "https://github.com/shipwithai/shipwithai-fixkit",
+  "license": "MIT",
+  "keywords": ["bug-fix", "debugging", "root-cause", "triage", "verification", "regression-guard", "systematic-debugging"],
+  "skills": [
+    "./skills/triage",
+    "./skills/spine",
+    "./skills/verification",
+    "./skills/regression-guard"
+  ]
+}

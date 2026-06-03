@@ -1,0 +1,41 @@
+{
+  "skillId": "regression-guard",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "guard-01",
+      "prompt": "I fixed a logic bug in the totals function. What guard should I leave?",
+      "expectedBehavior": "Leave a regression test that pins the corrected behavior (the failing test that now passes) and record it in the ledger guard field.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "guard-02",
+      "prompt": "Leave a guard for this UI hydration fix.",
+      "expectedBehavior": "Leave a layer-appropriate UI guard (interaction + console assertion). If the layer is ASSIST, record a gap-log / handoff instead of claiming an automated guard.",
+      "category": "ui-guard",
+      "shouldTrigger": true
+    },
+    {
+      "id": "guard-03",
+      "prompt": "How do I guard a System bug whose fix lives in CI config?",
+      "expectedBehavior": "Leave a CI check or instrumented-boundary assertion as the guard artifact and link it from the ledger.",
+      "category": "system-guard",
+      "shouldTrigger": true
+    },
+    {
+      "id": "guard-04",
+      "prompt": "Write the user-facing documentation for our product.",
+      "expectedBehavior": "Do NOT trigger regression-guard — this is documentation authoring, not leaving a post-fix guard.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "guard-05",
+      "prompt": "Design a database schema for a new app.",
+      "expectedBehavior": "Do NOT trigger regression-guard — there is no fix to guard against regressing.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

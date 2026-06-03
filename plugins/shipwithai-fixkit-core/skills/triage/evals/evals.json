@@ -1,0 +1,41 @@
+{
+  "skillId": "triage",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "triage-01",
+      "prompt": "Triage this bug: the Save button does nothing when I click it.",
+      "expectedBehavior": "Classify as symptom_layer=UI, subtype=interaction, assign a severity, and record Axis-A on the ledger before any reproduction.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "triage-02",
+      "prompt": "What layer is this bug? The invoice total comes out one cent too high.",
+      "expectedBehavior": "Classify as symptom_layer=Logic, subtype=wrong-output, with severity; note that root-cause layer (Axis B) is unknown until diagnosis.",
+      "category": "classification",
+      "shouldTrigger": true
+    },
+    {
+      "id": "triage-03",
+      "prompt": "Classify: the CI build fails on the code-signing step only on main.",
+      "expectedBehavior": "Classify as symptom_layer=System, subtype=infra/CI, assign severity, and route to the System reproduce recipe.",
+      "category": "classification",
+      "shouldTrigger": true
+    },
+    {
+      "id": "triage-04",
+      "prompt": "Build me a new pricing page component with three tiers.",
+      "expectedBehavior": "Do NOT trigger triage — this is feature work, not a bug report. Triage classifies existing defects, it does not author features.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "triage-05",
+      "prompt": "Explain how OAuth PKCE works.",
+      "expectedBehavior": "Do NOT trigger triage — this is a knowledge question with no defect to classify.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

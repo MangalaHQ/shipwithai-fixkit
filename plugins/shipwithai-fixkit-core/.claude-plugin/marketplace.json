@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "shipwithai-fixkit-core",
+  "description": "Stack-agnostic, layer-aware bug-fix engine for Claude Code. Iron Law + integrity guard enforced by a ledger state machine.",
+  "owner": {
+    "name": "ShipWithAI",
+    "email": "support@shipwithai.com"
+  },
+  "plugins": [
+    {
+      "name": "shipwithai-fixkit-core",
+      "description": "Stack-agnostic, layer-aware bug-fix engine. Classify by symptom layer, debug on a vendored systematic-debugging spine, close only on layer-appropriate proof.",
+      "version": "0.1.0",
+      "author": {
+        "name": "ShipWithAI",
+        "email": "support@shipwithai.com"
+      },
+      "source": "./",
+      "category": "productivity",
+      "tags": ["bug-fix", "debugging", "root-cause", "triage", "verification", "regression-guard"]
+    }
+  ],
+  "version": "0.1.0"
+}

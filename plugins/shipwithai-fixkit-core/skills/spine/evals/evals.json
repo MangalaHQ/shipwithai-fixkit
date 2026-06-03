@@ -1,0 +1,41 @@
+{
+  "skillId": "spine",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "spine-01",
+      "prompt": "Walk me through debugging this failing test systematically.",
+      "expectedBehavior": "Apply REPRODUCE-ISOLATE-DIAGNOSE-FIX-VERIFY-GUARD. Refuse to propose a fix before a written root cause (Iron Law).",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "spine-02",
+      "prompt": "I've tried three fixes and the crash still happens. What now?",
+      "expectedBehavior": "Trigger 3-strikes escalation: stop fixing, question the architecture / look one layer up, and move the ledger toward escalated.",
+      "category": "three-strikes",
+      "shouldTrigger": true
+    },
+    {
+      "id": "spine-03",
+      "prompt": "Find the root cause of this null pointer before you change anything.",
+      "expectedBehavior": "Run root-cause investigation first; do not edit code until the root cause is identified and recorded.",
+      "category": "iron-law",
+      "shouldTrigger": true
+    },
+    {
+      "id": "spine-04",
+      "prompt": "Add dark mode to the settings screen.",
+      "expectedBehavior": "Do NOT trigger the spine — this is feature work, not a bug investigation.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "spine-05",
+      "prompt": "Refactor this service for readability while everything is working.",
+      "expectedBehavior": "Do NOT trigger the spine — there is no defect; the spine is for diagnosing bugs, not opportunistic refactors.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

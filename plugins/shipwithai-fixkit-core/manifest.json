@@ -1,0 +1,37 @@
+{
+  "lastUpdated": 1748908800000,
+  "skills": [
+    {
+      "skillId": "triage",
+      "name": "triage",
+      "description": "Classify a bug by symptom layer (UI / Logic / System), subtype, and severity. Triggers: 'triage this bug', 'what layer is this', 'classify the bug'.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-03T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "spine",
+      "name": "spine",
+      "description": "The REPRODUCE-ISOLATE-DIAGNOSE-FIX-VERIFY-GUARD debugging discipline. Iron Law, one-hypothesis/smallest-change, 3-strikes escalation. Vendored from superpowers:systematic-debugging.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-03T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "verification",
+      "name": "verification",
+      "description": "Enforce the verification matrix: proof is dictated by symptom layer; FULL runs and observes, ASSIST emits handoff/v0. A rendered bug never closes on a source diff.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-03T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "regression-guard",
+      "name": "regression-guard",
+      "description": "Leave the layer-appropriate guard artifact after a fix (test, assertion, CI check, or gap-log) so the bug cannot silently return.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-03T00:00:00Z",
+      "enabled": true
+    }
+  ]
+}

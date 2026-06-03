@@ -1,0 +1,41 @@
+{
+  "skillId": "verification",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "verify-01",
+      "prompt": "How do I prove this UI overflow bug is actually fixed?",
+      "expectedBehavior": "Require a live computed-style / DOM assertion on the rendered page (e.g. scrollWidth <= clientWidth). Refuse a source diff as proof for a UI bug.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "verify-02",
+      "prompt": "Can I just close this rendered bug with the git diff of my CSS change?",
+      "expectedBehavior": "No. Flag VERIFICATION_LAYER_MISMATCH: a rendered bug never closes on a source diff; demand layer-appropriate live proof.",
+      "category": "layer-binding",
+      "shouldTrigger": true
+    },
+    {
+      "id": "verify-03",
+      "prompt": "The adapter can build but can't run the app here. What state can this bug reach?",
+      "expectedBehavior": "ASSIST tier: emit handoff/v0 and stop at candidate, never closed (no runner -> no auto-close).",
+      "category": "assist-tier",
+      "shouldTrigger": true
+    },
+    {
+      "id": "verify-04",
+      "prompt": "Generate a full unit-test suite for a brand-new feature.",
+      "expectedBehavior": "Do NOT trigger verification — there is no fixed bug whose proof needs selecting.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "verify-05",
+      "prompt": "Set up a CI pipeline from scratch for my repo.",
+      "expectedBehavior": "Do NOT trigger verification — this is infrastructure setup, not bug-fix proof selection.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

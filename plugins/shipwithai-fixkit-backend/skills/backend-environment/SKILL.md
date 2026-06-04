@@ -8,7 +8,7 @@ user-invocable: true
 
 # backend-environment — make the backend runnable and clean
 
-The web adapter's sibling for backend stacks. The engine (core's spine) calls this to get a
+The backend adapter's environment skill. The engine (core's spine) calls this to get a
 **runnable, clean** target before REPRODUCE. It locates or stands up the service via `~~runtime`
 and removes the state that makes backend bugs flaky. It ships no debugging logic.
 

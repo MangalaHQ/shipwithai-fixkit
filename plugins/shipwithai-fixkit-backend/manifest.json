@@ -4,7 +4,7 @@
     {
       "skillId": "backend-environment",
       "name": "backend-environment",
-      "description": "Stand up or locate the runnable backend target and enforce hygiene: env vars, free ports, clean test DB/state, kill stale processes. Triggers: 'start the service', 'reset the test DB'.",
+      "description": "Stand up or locate the runnable backend target and enforce hygiene: env vars present, ports free, clean test DB/state, kill stale processes. Triggers: 'start the service', 'reset the test DB'.",
       "creatorType": "community",
       "updatedAt": "2026-06-04T00:00:00Z",
       "enabled": true
@@ -28,7 +28,7 @@
     {
       "skillId": "backend-source-map",
       "name": "backend-source-map",
-      "description": "Symptom -> file hints on backend stacks: route/handler -> service -> data layer. Generic only; org specifics belong to packs. Internal: engine isolate step on a backend bug.",
+      "description": "Symptom -> file hints on common backend stacks: route/handler -> service/use-case -> data layer. Generic only; org specifics belong to packs. Internal: engine isolate step on a backend bug.",
       "creatorType": "community",
       "updatedAt": "2026-06-04T00:00:00Z",
       "enabled": true

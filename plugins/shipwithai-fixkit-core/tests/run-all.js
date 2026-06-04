@@ -149,6 +149,55 @@ section('6b. close guard (transition surface) + fix-recorded');
   assert(!auditNoFix.ok && hasCode(auditNoFix, 'FIX_NOT_RECORDED'), 'validateLedger flags closed-without-fix (FIX_NOT_RECORDED)', JSON.stringify(auditNoFix.violations));
 }
 
+// 6c. HARD-LOCK PRE-FIX GUARD (Phase-1 seam: hard_lock_violations) ----------
+section('6c. hard-lock pre-fix guard (Phase-1 seam)');
+{
+  const diagnosed = { state: 'diagnosed', symptom_layer: 'UI', root_cause: 'rc', verification: {} };
+  // A pending hard-lock violation BLOCKS the fix transition (pre-fix enforcement).
+  const blocked = applyTransition(diagnosed, 'enter_fixed', { ledger: { hard_lock_violations: ['data-surface-removed'] } });
+  assert(!blocked.ok && hasCode(blocked, 'HARD_LOCK_VIOLATION'), 'enter_fixed REFUSED with non-empty hard_lock_violations (blocked pre-fix)', JSON.stringify(blocked.violations));
+  assert(blocked.ledger.state === 'diagnosed', 'state did not advance past diagnosed when hard-lock pending', blocked.ledger.state);
+  // enter_candidate (ASSIST path) is likewise blocked pre-fix.
+  const blockedC = applyTransition({ ...diagnosed, verification: { capability_tier: 'ASSIST' } }, 'enter_candidate', { ledger: { hard_lock_violations: ['url-mutated'] } });
+  assert(!blockedC.ok && hasCode(blockedC, 'HARD_LOCK_VIOLATION'), 'enter_candidate REFUSED with non-empty hard_lock_violations', JSON.stringify(blockedC.violations));
+  // Control: an empty lock list allows the fix to proceed.
+  const allowed = applyTransition(diagnosed, 'enter_fixed', { ledger: { hard_lock_violations: [] } });
+  assert(allowed.ok && allowed.ledger.state === 'fixed', 'enter_fixed allowed when hard_lock_violations empty (control)', JSON.stringify(allowed.violations));
+  // Auditor agrees: a post-fix ledger carrying an unresolved lock is illegal.
+  const audit = validateLedger({ state: 'fixed', symptom_layer: 'UI', root_cause: 'rc', fix: 'f', hard_lock_violations: ['data-surface-removed'] });
+  assert(!audit.ok && hasCode(audit, 'HARD_LOCK_VIOLATION'), 'validateLedger flags fixed-with-unresolved-hard-lock', JSON.stringify(audit.violations));
+  // Defense-in-depth: a lock that somehow survives into a later state still blocks verify AND close
+  // on the transition surface (not only the invariant auditor).
+  const vBlocked = applyTransition({ state: 'fixed', symptom_layer: 'UI', root_cause: 'rc', fix: 'f', hard_lock_violations: ['data-surface'], verification: {} }, 'enter_verified');
+  assert(!vBlocked.ok && hasCode(vBlocked, 'HARD_LOCK_VIOLATION'), 'enter_verified REFUSED with non-empty hard_lock_violations (defense-in-depth)', JSON.stringify(vBlocked.violations));
+  const cBlocked = applyTransition({ state: 'verified', symptom_layer: 'Logic', root_cause: 'rc', fix: 'f', hard_lock_violations: ['data-surface'], verification: { method: 'test-run', capability_tier: 'FULL', evidence: 'e', verified_by: 'v' } }, 'close');
+  assert(!cBlocked.ok && hasCode(cBlocked, 'HARD_LOCK_VIOLATION'), 'close REFUSED with non-empty hard_lock_violations (defense-in-depth)', JSON.stringify(cBlocked.violations));
+}
+
+// 6d. HANDOFF/v0 FORMAT (ASSIST verification handoff; P3/P4 inherit it) ------
+section('6d. handoff/v0 format + layer-proof binding');
+{
+  const { validateHandoff } = require('../lib/handoff-validator');
+  const valid = {
+    version: 'handoff/v0', bug_id: 'BUG-0003', symptom_layer: 'UI',
+    target: { env: 'local-dev', url: 'http://localhost:4321/blog/x', device: 'desktop', viewport: '1280x800' },
+    steps: ['open URL', 'measure the pre element'],
+    assertion: { method: 'computed-style', expected: 'scrollWidth <= clientWidth on pre' },
+    verified_by: null,
+  };
+  const okH = validateHandoff(valid);
+  assert(okH.ok, 'a complete handoff/v0 (verified_by:null) is ACCEPTED', JSON.stringify(okH.violations));
+
+  const noAssert = validateHandoff(Object.assign({}, valid, { assertion: undefined }));
+  assert(!noAssert.ok && noAssert.violations.some((x) => x.code === 'HANDOFF_NO_ASSERTION'), 'handoff missing assertion is REJECTED', JSON.stringify(noAssert.violations));
+
+  const badMethod = validateHandoff(Object.assign({}, valid, { assertion: { method: 'test-run', expected: 'x' } }));
+  assert(!badMethod.ok && badMethod.violations.some((x) => x.code === 'HANDOFF_LAYER_MISMATCH'), 'UI handoff with a non-UI proof method is REJECTED (layer binding)', JSON.stringify(badMethod.violations));
+
+  const noSlot = validateHandoff({ version: 'handoff/v0', bug_id: 'B', symptom_layer: 'UI', target: { env: 'e' }, steps: ['s'], assertion: { method: 'computed-style', expected: 'x' } });
+  assert(!noSlot.ok && noSlot.violations.some((x) => x.code === 'HANDOFF_NO_VERIFIED_BY_SLOT'), 'handoff missing the verified_by slot is REJECTED', JSON.stringify(noSlot.violations));
+}
+
 // 7. CONVENTION + EVAL-SCHEMA LINTERS (BLOCKING) ----------------------------
 section('7. Convention + eval-schema linters');
 function walkSkillFiles() {

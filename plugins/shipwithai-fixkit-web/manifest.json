@@ -1,0 +1,37 @@
+{
+  "lastUpdated": 1749000000000,
+  "skills": [
+    {
+      "skillId": "web-environment",
+      "name": "web-environment",
+      "description": "Stand up or locate the runnable web target on port 4321 (astro dev); hard-refresh, cache discipline, kill stale servers. Triggers: 'start the dev server', 'the page is stale'.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-04T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "web-reproduce",
+      "name": "web-reproduce",
+      "description": "Web reproduce recipes per layer/subtype: computed-style read, scrollWidth vs clientWidth, console read, interaction+state assertion, viewport/resize matrix. Internal: engine reproduce step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-04T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "web-verify",
+      "name": "web-verify",
+      "description": "Web verify recipes that mirror reproduce; when ~~browser is absent emit handoff/v0 with a UI LAYER_METHODS proof. Triggers (internal): orchestrator verify step on a web bug.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-04T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "web-source-map",
+      "name": "web-source-map",
+      "description": "Symptom -> file hints on an Astro + content-collections stack: overflow, dead interaction, layout gap, content-not-updating. Triggers (internal): orchestrator isolate step on a web bug.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-04T00:00:00Z",
+      "enabled": true
+    }
+  ]
+}

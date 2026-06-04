@@ -1,0 +1,41 @@
+{
+  "skillId": "web-environment",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "web-environment-01",
+      "prompt": "Start the dev server so I can look at the blog page.",
+      "expectedBehavior": "Stand up astro dev on canonical port 4321, kill any stale server first, confirm the route responds, and hand back the localhost:4321 observation URL.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-environment-02",
+      "prompt": "My change to the design package isn't showing up on the page even after I saved it.",
+      "expectedBehavior": "Treat it as a cache problem first: note the file:-symlinked design-package caching caveat, clear .astro/ and node_modules/.vite, restart the dev server, then hard-refresh before suspecting the change.",
+      "category": "cache-discipline",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-environment-03",
+      "prompt": "The page looks stale and there might be an old server still running on 4321.",
+      "expectedBehavior": "Kill the stale server holding port 4321, restart astro dev fresh, and hard-refresh the page before any measurement.",
+      "category": "stale-server",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-environment-04",
+      "prompt": "Measure scrollWidth vs clientWidth on the code block and tell me if it overflows.",
+      "expectedBehavior": "Do NOT trigger web-environment — that is a reproduce measurement (web-reproduce), not standing up or refreshing the environment.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "web-environment-05",
+      "prompt": "Which file should I look in for the code-block overflow bug?",
+      "expectedBehavior": "Do NOT trigger web-environment — that is a source-location question (web-source-map), not an environment/server task.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

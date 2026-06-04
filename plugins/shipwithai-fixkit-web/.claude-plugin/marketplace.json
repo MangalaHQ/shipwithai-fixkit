@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "shipwithai-fixkit-web",
+  "description": "Thin web adapter for the fixkit engine. Maps ~~connectors to concrete web tooling and ships per-layer reproduce/verify/source-map recipes for an Astro stack.",
+  "owner": {
+    "name": "ShipWithAI",
+    "email": "support@shipwithai.com"
+  },
+  "plugins": [
+    {
+      "name": "shipwithai-fixkit-web",
+      "description": "Thin web adapter: connector mappings + per-layer recipes + capability declarations for an Astro + content-collections stack. No debugging logic — that lives in core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "ShipWithAI",
+        "email": "support@shipwithai.com"
+      },
+      "source": "./",
+      "category": "productivity",
+      "tags": ["bug-fix", "web", "adapter", "astro", "browser", "ui"]
+    }
+  ],
+  "version": "0.1.0"
+}

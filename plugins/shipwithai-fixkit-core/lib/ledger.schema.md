@@ -54,6 +54,7 @@ open -> reproduced -> diagnosed -> (gated) -> fixed | candidate -> verified -> c
 | ASSIST ceiling | `ASSIST_CANNOT_CLOSE` | an `ASSIST` ledger may not be `closed` (max `candidate`) |
 | Layer-proof binding | `VERIFICATION_LAYER_MISMATCH` | proof `method` must match `symptom_layer` (a UI bug never closes on a source diff) |
 | 3-strikes | `THREE_STRIKES_NO_ESCALATION` | `3_strikes_count >= 3` requires `state: escalated` |
+| Hard-lock (pre-fix) | `HARD_LOCK_VIOLATION` | cannot enter `fixed`/`candidate` (or sit at any post-fix state) while `hard_lock_violations` is non-empty — an org pack populates it pre-fix; resolve the lock or escalate first |
 
 Two surfaces enforce these: `validateLedger(snapshot)` audits a frozen ledger; `applyTransition
 (ledger, event)` is the guard the orchestrator calls before mutating state.

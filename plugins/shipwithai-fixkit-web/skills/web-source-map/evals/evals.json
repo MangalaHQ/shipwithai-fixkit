@@ -1,0 +1,41 @@
+{
+  "skillId": "web-source-map",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "web-source-map-01",
+      "prompt": "Where should I look for the code-block horizontal overflow on the blog?",
+      "expectedBehavior": "Point at the pre/prose CSS (white-space, overflow-x, max-width on pre/code; .prose rules) as the likely location, as a starting point for DIAGNOSE.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-source-map-02",
+      "prompt": "The button click does nothing — which file is the problem likely in?",
+      "expectedBehavior": "Point at a missing client:* hydration directive (un-hydrated island ships no JS) or an unwired behavior script as the likely cause; confirm hydration before debugging the handler.",
+      "category": "interaction",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-source-map-03",
+      "prompt": "My content edit isn't showing on the page — where do I look?",
+      "expectedBehavior": "Point at the content-collections cache (.astro/ generated cache, collection schema/loader) and rule out a cache cause first per web-environment before editing source.",
+      "category": "content-cache",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-source-map-04",
+      "prompt": "Verify the overflow is gone after my CSS change.",
+      "expectedBehavior": "Do NOT trigger web-source-map — proving the fix is verification (web-verify), not locating a file.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "web-source-map-05",
+      "prompt": "Start the dev server on 4321.",
+      "expectedBehavior": "Do NOT trigger web-source-map — standing up the runnable target is web-environment, not a source-location hint.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

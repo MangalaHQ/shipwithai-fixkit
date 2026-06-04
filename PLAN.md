@@ -1,249 +1,307 @@
-# PLAN.md — Phase 0: `shipwithai-fixkit-core` MVP
+# PLAN.md — Phase 1: web adapter + ShipWithAI pack ⭐
 
-> **Status:** Consensus reached (Planner → Architect → Critic). **HALTING for Cowork review + Ethan's plan-in approval** (ADR-0002).
-> **Gate:** ADR-0002 plan-before-execute. No production file is written until this PLAN is approved.
-> **Source of truth:** `../shipwithai-fixkit-design/{08,09,10,12}` + `../shipwithai-plugins/` conventions (both confirmed reachable — Prereq item 4 satisfied, no HALT).
->
-> **Consensus record (ralplan):**
-> - **Architect** found one blocking soundness defect — acceptance checks #3 (Iron-Law) and #4 (3-strikes) originally tested *static snapshots*, not the *transition guards* they name; #4 would pass green-by-construction. **Resolved:** the state machine now exposes `applyTransition(ledger, event)`; #3/#4 drive *events* (`enter_fixed` refusal; `record_fix_failure` ×3 fires `escalated`). Plus 4 CI-conformance gaps. **Resolved.**
-> - **Critic** verdict 1 = ITERATE: 3 MAJOR (inline-code≤20 linter, `user-invocable:false` sub-skill demonstration, 4-key version sync). **Resolved.**
-> - **Critic** verdict 2 = **APPROVE**. All 7 Phase-0 gate checks map to runnable pass conditions; no check merely asserted.
-> - **Open residual (non-blocking):** `inline-code ≤20` vs source `<20` off-by-one is ambiguous in the blueprint; settle during execution.
+> **Status:** ✅ **APPROVED at plan-in (Ethan, 2026-06-04).** Executing §10 autonomously to PR.
+> **Plan-in rulings:** (Q1) bug pre-state = **as-if-undiscovered / oracle** — existing gap-log + commits are held-out ground truth; engine reproduces conclusions independently, no destructive resets. (Q2) target = **`/Users/ethannguyen/Data/WorkspaceSWA/shipwithai.io`**, branch `phase-1/<topic>` **off current HEAD** (keep its uncommitted in-scope changes). Defaults accepted: reuse `drafts/V0.{N}-STREAM-{X}-GAPS.md` gap-log; interim local-SHA `file://` engine pin; Bug 3 = consumer fix; delete dead `ReactionBar.tsx`.
+> **Gate:** ADR-0002 plan-before-execute — satisfied. Next HALTs: live-UI verification handshakes (Cowork) + PR-out (Ethan).
+> **Supersedes:** the Phase-0 `PLAN.md` (preserved in git history @ `67d218d` and ancestors).
+> **Source of truth (all confirmed reachable — no HALT):** `../shipwithai-fixkit-design/{08,09,10,12,13}` + `../shipwithai-fixkit-design/handoffs/CC-PHASE-1.md` + `../shipwithai-plugins/` conventions.
+> **Engine baseline:** `shipwithai-fixkit` @ `67d218d` (Phase 0 + 0b closed), `shipwithai-fixkit-core` v0.1.0.
 
 ---
 
-## RALPLAN-DR summary
+## 0. Executive summary & the one decision that reshapes execution
 
-### Principles
-1. **Determinism over assertion.** Every Phase-0 gate check that *can* be mechanized is an executable, reproducible command (`node tests/run-all.js` → exit 0/non-0), not a prose claim. The worker shows command output; a fresh critic grades.
-2. **Core stays platform-agnostic.** No real adapter, no ShipWithAI specifics. The "platform" is a *test fixture* stub, never a shipped plugin. Connectors are `~~category` placeholders with generic defaults.
-3. **The ledger is the single source of truth for bug state**, and its state machine is *enforced by code*, not by good intentions. Iron Law + integrity rule + 3-strikes are properties the validator can prove or refute on any ledger file.
-4. **Compose by convention, not by wiring.** Slash-path references + `user-invocable:false` sub-skills + `agents/*.md`. Zero `plugin.json` dependency graph.
-5. **Conform to the blueprint; extend it transparently.** Where fixkit is *stricter* than `shipwithai-plugins` (blocking line limits, ≥5 evals, the `## What this does NOT do` convention), that delta is declared in an ADR, not silently diverged.
+This is the **proof phase**: the engine must fix two real consumer bugs on `shipwithai.io` (Bug 3, Bug 4) through the full FULL loop and **correctly refuse** to fix a design-organism bug in the consumer (Bug 1 → gap-log → `escalated`). We ship a **thin web adapter** in the engine repo and a **ShipWithAI pack** in a new private focus repo, then run the 3-bug acceptance suite as the Phase-1 gate.
 
-### Decision drivers (top 3)
-1. **The negative tests must be deterministic and CI-runnable** (handoff §0.2) — this is the load-bearing decision. Markdown prompts cannot self-test; something executable must adjudicate ledger state.
-2. **Blueprint conformance** — the repo must pass the *same* `validate-plugin.yml` shape so it slots into the family, while adding fixkit-specific gates.
-3. **Phase-0 is a seam, not a cul-de-sac** — the gate/verification machinery must be the exact place Phase-1 hard-locks (AD-027 etc.) later plug in, without building them now.
+**Load-bearing pre-flight finding (changes how we run the gate):** the three bugs are **not greenfield** — the ShipWithAI team has already manually diagnosed all three, and the artifacts exist on disk:
 
-### Viable options for the load-bearing decision (deterministic gate mechanism)
+| Bug | Current real-world state (discovered during exploration) |
+|---|---|
+| **Bug 1** — ArticleHero `--no-image` 96px gap | **Already gap-logged** at `shipwithai.io/drafts/V0.28-STREAM-C-GAPS.md:28-50`, status OPEN, with confirmed additive cause (`--no-image` `padding-bottom:64px` + `.__lead margin-bottom:32px` = 96px) and a recommended design-repo fix. Root cause lives in `@shipwithai/design` ArticleHero organism. |
+| **Bug 3** — code-block horizontal overflow | Body fences inside `ArticleBody` already have `overflow-x:auto` (design repo). The live overflow surface is the **consumer** `src/components/blog/CodePreviewSnippet.astro` (currently modified in the working tree). Related code-pipeline analysis already logged at `V0.28-STREAM-C-GAPS.md:52-91`. |
+| **Bug 4** — ReactionsBar dead + storage errors | Live `ReactionsBar` is the **Astro organism** rendering `disabled` buttons; its behavior (`initReactionsBar` in `ReactionsBar.behavior.ts`) is **never wired** by the consumer. A separate **dead React `ReactionBar.tsx`** (uses `localStorage`) is the storage-error source. Fix is consumer-side wiring in `BlogPostPage.astro`. |
 
-**Option A — Node.js ledger state machine (snapshot validator **+ transition function**) + YAML fixtures, run by `tests/run-all.js` (RECOMMENDED).**
-A zero-runtime-dependency Node module (`lib/ledger-validator.js`) exposing **two surfaces**: `validateLedger(snapshot) → {ok, violations[]}` (static invariant auditor) **and** `applyTransition(ledger, event) → {ok, ledger', violations[]}` (the guard the orchestrator's gate calls). `tests/run-all.js` drives both: snapshot fixtures for *invariants* (#2) and *simulated event sequences* for *transition guards* (#3 Iron-Law gate, #4 three-strikes-fires). Blueprint CI already auto-runs `tests/run-all.js` if present (validate-plugin.yml:163–174) — zero CI surgery needed. (Architect correction: a static count-3 fixture cannot distinguish a working increment-and-escalate loop from an absent one; #3/#4 must drive *events*, not assert *snapshots*.)
-- **Pros:** Deterministic, reproducible, runs in existing CI hook, Node already used by blueprint, no network, fixtures double as living documentation, and the transition function is the *single* state machine the runtime (`fix.md`) and tests both reference.
-- **Cons:** Need a YAML reader. Hand-rolled subset parser (zero-dep) carries edge-case risk — mitigated by committing to zero-dep **with no `package.json`** and adding parser unit tests (see R3); no `js-yaml`/`npm ci` fallback (would break the blueprint's `npm install --ignore-scripts` hook).
+**Implication for the PLAN (needs Ethan's ruling — see §11 Q1):** we must decide whether Phase 1 (a) runs the engine on the bugs **as if undiscovered**, treating the existing gap-log/commits as held-out ground truth to validate engine correctness against (recommended — it's an honest test of the engine), or (b) resets the consumer/design working trees to a pre-fix state first. Either way the existing artifacts are gold-standard oracles: the engine's independent conclusions must *match* them.
 
-**Option B — Python validator (mirror `publish-plugin.sh`'s `python3 -c` style).**
-Blueprint scripts already shell out to `python3` for JSON. Use `python3` + a tiny YAML reader.
-- **Pros:** PyYAML is batteries-adjacent; blueprint already invokes python3.
-- **Cons:** Blueprint's auto-test hook is `tests/run-all.js` (Node), so Python needs an explicit CI step → CI surgery + divergence from the family's test convention. PyYAML is not stdlib (still a dep).
-
-**Option C — Pure-bash assertion harness over `grep`/`awk` on frontmatter.**
-- **Pros:** No language runtime beyond bash.
-- **Cons:** Parsing nested YAML (`verification:` object) in bash is brittle and unreadable; the state machine becomes spaghetti. Rejected for maintainability and correctness risk — the validator *is* the trust anchor; it cannot be the flakiest code in the repo.
-
-**Chosen: Option A.** Drivers 1 + 2 dominate: it is the only option that is both fully deterministic *and* rides the blueprint's existing Node test hook with no CI divergence. YAML risk is mitigated by writing a **narrow, schema-specific frontmatter parser** (the ledger schema is fixed and flat-ish — one nested object, `verification`), unit-tested by the fixtures themselves; `js-yaml` is held as a fallback if the parser proves fragile (decision logged in Risk R3).
-
-*Invalidation of B/C:* B loses on CI-convention divergence (Driver 2) for no determinism gain over A. C loses on correctness/maintainability of nested-YAML parsing — unacceptable for the component that adjudicates every other guarantee.
+**Gap-log destination proposal (Decision 4, "CC proposes in PLAN"):** **reuse the existing convention** — `shipwithai.io/drafts/V0.{N}-STREAM-{X}-GAPS.md`, "Bug-fix round — design-organism root causes" section, the established 4–6 column schema. Do **not** invent a new file. Rationale and exact format in §6.
 
 ---
 
-## 1. Exact file tree (every path), mapped to doc 08 §4
+## 1. Decisions locked by Ethan (carried from handoff §1) + CC's plan-in fills
 
-Repo root: `../shipwithai-fixkit/` (currently: `README.md` + `.omc/` only; **no `.git` yet → `git init` is step 0**).
-
-```
-shipwithai-fixkit/
-├── .claude-plugin/
-│   └── marketplace.json                 # name "shipwithai-fixkit"; registers shipwithai-fixkit-core (P1+ plugins omitted, not placeholdered — see §note)
-├── .github/workflows/
-│   ├── validate-plugin.yml              # ported from blueprint + fixkit strict gates (blocking limits, ≥5 evals, "does NOT do" linter, node tests/run-all.js)
-│   └── publish-plugin.yml               # ported from blueprint (version-bump → release)
-├── NOTICE                               # credits superpowers:systematic-debugging, MIT © 2025 Jesse Vincent (full upstream license text)
-├── README.md                            # replace placeholder
-├── CLAUDE.md
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── QUALITY-STANDARDS.md
-├── docs/
-│   └── adr/
-│       ├── 0001-blueprints-as-source-of-truth.md
-│       ├── 0002-plan-before-execute.md
-│       ├── 0003-read-before-edit.md
-│       └── 0004-deterministic-ledger-gate.md   # NEW: the Option-A decision + strict-gate delta vs blueprint
-└── plugins/
-    └── shipwithai-fixkit-core/
-        ├── .claude-plugin/
-        │   ├── plugin.json              # name, SemVer version (seed 0.1.0), explicit skills[] (relative paths)
-        │   └── marketplace.json         # per-plugin: carries BOTH top-level `version` AND `plugins[0].version` — both MUST equal plugin.json.version; source "./"  [G1/M3]
-        ├── manifest.json                # lastUpdated + skills[] registry (skillId/name/description/creatorType/enabled)
-        ├── CLAUDE.md                    # <200 lines
-        ├── README.md
-        ├── CHANGELOG.md
-        ├── QUALITY-STANDARDS.md
-        ├── CONNECTORS.md                # ~~runtime ~~test-runner ~~ci ~~browser ~~source control ~~monitoring + generic defaults
-        ├── commands/
-        │   └── fix.md                   # orchestrator entry (main thread): intake→classify→select adapter→spawn agent→gate→verify→integrity→close; tracks 3_strikes_count
-        ├── skills/
-        │   ├── triage/
-        │   │   ├── SKILL.md             # Axis-A classifier; user-invocable: true (standalone-usable); ≤200; ends "## What this does NOT do"
-        │   │   └── evals/evals.json     # ≥5 prompts (3 trigger / 2 must-not-trigger)
-        │   ├── spine/
-        │   │   ├── SKILL.md             # VENDORED+CONDENSED systematic-debugging; **user-invocable: false** sub-skill (loaded by fix.md/agents via slash-path); license header; ends "## What this does NOT do"
-        │   │   └── evals/evals.json     # ≥5 (3/2 split)
-        │   ├── verification/
-        │   │   ├── SKILL.md             # §7 matrix enforcer; **user-invocable: false** sub-skill; FULL→run, ASSIST→handoff/v0; forbids closing UI bug on source diff
-        │   │   └── evals/evals.json     # ≥5 (3/2 split)
-        │   └── regression-guard/
-        │       ├── SKILL.md             # leaves layer-appropriate guard artifact; **user-invocable: false** sub-skill
-        │       └── evals/evals.json     # ≥5 (3/2 split)
-        ├── agents/
-        │   ├── ui-bug-agent.md          # frontmatter name/description(+triggers)/model: sonnet/tools[]; embeds spine; ends "## What this agent does NOT do"
-        │   ├── logic-bug-agent.md
-        │   └── system-bug-agent.md
-        ├── lib/
-        │   ├── ledger.schema.md         # YAML frontmatter fields + body sections + lifecycle states + transition guards (doc); documents runtime ledgers live in .fixkit/ (committed)
-        │   └── ledger-validator.js      # zero-dep Node, two surfaces: validateLedger(snapshot) + applyTransition(ledger,event) → {ok, violations[]}
-        ├── tests/
-        │   ├── run-all.js               # blueprint CI auto-runs this; snapshot tests (#2) + event-driven transition sims (#3/#4); convention + eval-schema linters; parser unit tests
-        │   └── lib/
-        │       ├── frontmatter.js       # narrow ledger-schema YAML-subset parser (zero-dep; unit-tested in run-all.js)
-        │       └── linters.js           # BLOCKING: line-limits incl. inline-code≤20, "does NOT do" presence, ≥1 user-invocable:false, evals 3/2 split+schema, 4-key version-sync
-        └── evals/
-            └── fixtures/                # handoff §0.2 fixture home (NOT a real adapter; test scaffolding only)
-                ├── stub-adapter/        # (build note: split into buggy/fixed + reproduce/verify per fresh-critic Minor #1, so check #1 is a runnable lifecycle)
-                │   ├── README.md        # what this stub fixture simulates (a Logic bug + a test-runner) — NOT a real adapter
-                │   ├── buggy.js         # synthetic logic bug in FAILING form (wrong output)
-                │   ├── fixed.js         # the fix (smallest change)
-                │   ├── reproduce.test.js # runs vs buggy.js → FAILS (the reproduction)
-                │   └── verify.test.js   # runs vs fixed.js → PASSES (the verification evidence + guard)
-                └── ledger/
-                    ├── happy-path.closed.md            # open→reproduced→diagnosed→fixed→verified→closed → validateLedger ACCEPTS (check #1)
-                    ├── neg-integrity.empty-evidence.md # closed + evidence "" → validateLedger REJECTS (INTEGRITY_EVIDENCE_EMPTY) — invariant (check #2)
-                    ├── seed-ironlaw.no-rootcause.md    # diagnosed-ish ledger, root_cause "" → applyTransition(enter_fixed) REFUSED (IRON_LAW_FIX_BEFORE_ROOT_CAUSE) — guard (check #3)
-                    ├── seed-3strikes.diagnosed.md      # clean ledger; test applies recordFixFailure ×3 → 3rd fires →escalated (THREE_STRIKES_NO_ESCALATION if not) — guard (check #4)
-                    ├── neg-assist.closed.md            # capability_tier ASSIST + closed → REJECTS (ASSIST_CANNOT_CLOSE) — invariant
-                    └── neg-layerproof.ui-on-diff.md    # symptom_layer UI + method source-diff + closed → REJECTS (VERIFICATION_LAYER_MISMATCH) — invariant
-```
-
-**Per-skill evals only (G2):** the four skills each carry `skills/<name>/evals/evals.json` (≥5, with the 3-trigger/2-must-not split). The earlier plugin-root `evals/evals.json` is **dropped** — blueprint CI's `find` only descends `skills/` (validate-plugin.yml:71), so a root file is invisible to CI and non-conventional. This retires risk R7.
-
-**Note on P1+ plugins:** Blueprint CI does not require sibling plugins to be listed (validate-plugin.yml:107–116 only *warns*). Phase-0 root `marketplace.json` registers **only** `shipwithai-fixkit-core`; the five adapters are documented in README "build order," not registered (phantom dirs would fail the REQUIRED-files check). Architect confirmed this is correct — keep it.
-
----
-
-## 2. How the Phase-0 gate becomes deterministically testable in CI (the key decision)
-
-**Mechanism (Option A above):** a code adjudicator + fixtures, wired into the blueprint's existing Node test hook.
-
-### 2.1 The state machine (`lib/ledger-validator.js`) — two surfaces, one rule set
-- `validateLedger(snapshot) → {ok, violations[]}` — static **invariant** auditor (used for checks #2 + the two honesty invariants, and to audit any committed `.fixkit/` ledger).
-- `applyTransition(ledger, event) → {ok, ledger', violations[]}` — the **transition guard** the orchestrator's gate step calls. Events: `enter_fixed`, `record_fix_failure`, `enter_verified`, `close`, … Each event checks the guard *before* mutating, returning `{ok:false, violations}` if refused.
-
-Rules, by category (each carries a stable `code`):
-
-**Invariants** (snapshot-checkable):
-- **Integrity** (`INTEGRITY_EVIDENCE_EMPTY` / `INTEGRITY_VERIFIER_MISSING`): `state == closed` ⇒ `verification.evidence` non-empty AND `verification.verified_by` named. → check #2.
-- **ASSIST ceiling** (`ASSIST_CANNOT_CLOSE`): `verification.capability_tier == ASSIST` ⇒ `state != closed` (max `candidate`). "No runner → no auto-close → handoff/v0." **Non-optional** (handoff §4 honesty bar).
-- **Layer-proof binding** (`VERIFICATION_LAYER_MISMATCH`): `verification.method` must match `symptom_layer`'s required proof (a UI bug cannot close on `source-diff`). **Non-optional** (handoff §4). 
-
-**Transition guards** (event-checkable — the faithful test of #3/#4):
-- **Iron Law** (`IRON_LAW_FIX_BEFORE_ROOT_CAUSE`): `applyTransition(ledger, enter_fixed)` is **refused** unless `root_cause` is non-empty. The FIX state is *unreachable* without root cause — tested as a guarded transition, not a residue. → check #3.
-- **3-strikes** (`THREE_STRIKES_NO_ESCALATION`): `applyTransition(ledger, record_fix_failure)` increments `3_strikes_count`; on the **3rd** application it *fires* `state → escalated` (and refuses any non-escalated next state). → check #4.
-- Legal-order guard: each `enter_*`/`close` event refuses if its predecessor state isn't satisfied.
-
-### 2.2 The fixtures (`evals/fixtures/ledger/`)
-Committed ledger files (auditable, prereq #2). Invariant fixtures (happy-path, empty-evidence, assist-closed, ui-on-diff) are static snapshots fed to `validateLedger`. Guard *seeds* (no-rootcause, diagnosed-clean) are starting states the runner mutates via `applyTransition` events.
-
-### 2.3 The runner (`tests/run-all.js`) — the deterministic gate
-`node tests/run-all.js` (exit 0 = green) performs:
-1. **Happy path (#1)** — `validateLedger(happy-path.closed.md)` ACCEPTS; the ledger is the produced artifact shown as evidence.
-2. **Integrity invariant (#2)** — `validateLedger(empty-evidence-closed)` REJECTS with `INTEGRITY_EVIDENCE_EMPTY` (fails-as-expected).
-3. **Iron-Law guard (#3)** — from `seed-ironlaw.no-rootcause.md`, `applyTransition(ledger, enter_fixed)` is **refused** with `IRON_LAW_FIX_BEFORE_ROOT_CAUSE`. Tests the *gate*, not the aftermath.
-4. **3-strikes guard (#4)** — from `seed-3strikes.diagnosed.md`, apply `record_fix_failure` ×3; assert (a) the counter reached 3 *via the function* and (b) the 3rd application *fired* `state → escalated`. This exercises the increment-and-escalate logic — a system that never increments or never escalates **fails** this test (it cannot pass green-by-construction).
-5. **Honesty invariants** — `validateLedger` REJECTS `neg-assist.closed.md` (`ASSIST_CANNOT_CLOSE`) and `neg-layerproof.ui-on-diff.md` (`VERIFICATION_LAYER_MISMATCH`).
-6. **Parser unit tests** — `frontmatter.js` round-trips the known schema edge cases (empty string vs null `evidence`, quoted vs unquoted `3_strikes_count`, nested `verification:` object) so a parser bug cannot produce a false green.
-7. **Convention + eval-schema linters** (all BLOCKING — non-zero exit, *replacing* the blueprint's `::warning::`+exit-0 semantics; the ported `validate-plugin.yml` keeps warnings, the *blocking* lives in `run-all.js`):
-   - **"does NOT do":** every `skills/**/SKILL.md` and `agents/*.md` ends with `## What this … does NOT do`.
-   - **Line limits as errors:** SKILL.md <200, references <150, bundles <500, descriptions <200 chars, **and inline-code ≤20** (M1: count consecutive lines inside any fenced ```` ``` ```` block in a SKILL.md; >20 → error).
-   - **Composition (M2):** assert ≥1 skill has `user-invocable: false` (proves check #7's sub-skill convention is exercised; `spine`/`verification`/`regression-guard` carry it; `fix.md`/`triage` dispatch them by slash-path).
-   - **Eval schema:** each skill's `evals.json` has ≥5 objects with the **3-trigger / 2-must-not-trigger** split and `{id, prompt, expectedBehavior, category}` shape.
-   - **Version sync (M3 — 4 keys, all equal):** `plugin.json.version` == per-plugin `marketplace.json` **top-level** `version` == per-plugin `marketplace.json` `plugins[0].version` == root `marketplace.json` `plugins[name==core].version`. (Note: the live `auth` reference is itself out of sync — do **not** copy its version values, only its shape.)
-
-**Why this is the right mechanism:** (a) fully deterministic — same inputs, same exit code, no model/network; (b) self-documenting — fixtures show the rules by example; (c) zero CI surgery — blueprint already runs `tests/run-all.js`; (d) the verification seam — Phase-1 hard-locks add `hard_lock_violations` rules + events to the *same* state machine and fixtures to the *same* runner; (e) **faithful** — #3/#4 drive *events* and prove the guards fire, not merely that a hand-written bad end-state is rejected. The same `applyTransition` rule-codes are cited by `commands/fix.md`, so runtime and tests share one state machine (§5).
-
-### 2.4 Scope of validation — what is enforced vs documented-only (Phase 0)
-- **`guard` field** — present in the schema; Phase-0 validator records it but does **not** gate on its content (guard *artifact* production is the `regression-guard` skill's job; deferred as a hard rule to Phase 1). Stated explicitly so it is not mistaken for an untested-but-claimed rule.
-- **`root_cause_layer` (Axis B) / B≠A re-dispatch** — schema field exists; the re-dispatch path is **runtime/model behavior**, not snapshot-testable, so Phase 0 documents it (in `triage`/`fix.md`) but adds no validator rule or fixture. Phase-1 live bugs (esp. Bug 1, the design-organism case) exercise it.
-- **`.fixkit/` semantics** — `.fixkit/` is the **committed runtime ledger directory in a *consuming* project**, documented in `lib/ledger.schema.md`. The Phase-0 *plugin repo* does **not** ship a `.fixkit/`; its committed ledgers are the **test fixtures** under `evals/fixtures/ledger/`. `validateLedger` is the auditor a consuming project would run over its `.fixkit/*.md`. (Resolves the Critic's `.fixkit/`-seeding ambiguity: no empty dir is seeded in the plugin repo.)
-
-**Bounded fidelity gap (named, per Architect):** the validator proves the *invariant + guard logic* deterministically. It does **not** prove the model-driven orchestrator loop executes that logic end-to-end — that is irreducibly non-deterministic in CI and is deferred to the **Phase-1 live-bug gate** (doc 10 §P1, the three real `shipwithai.io` bugs). Phase 0 bounds the gap by having `fix.md` cite the same rule-codes the validator enforces, so prose and code share one vocabulary.
-
----
-
-## 3. Vendored spine embedding + attribution
-
-- **Source:** `superpowers:systematic-debugging` v5.1.0, `…/skills/systematic-debugging/SKILL.md` (296 lines), **MIT © 2025 Jesse Vincent** (license text read from the upstream `LICENSE`).
-- **Embedding:** `skills/spine/SKILL.md` is a **condensed adaptation** (upstream 296 > 200-line limit). It preserves the **Iron Law** string **verbatim** ("NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST") and the "≥3 failed fixes → question the architecture" discipline (verbatim-preservable from upstream), while the **6-token spine** (REPRODUCE→ISOLATE→DIAGNOSE→FIX→VERIFY→GUARD) is fixkit's own vocabulary — a re-expression of upstream's 4-phase structure (Root-Cause Investigation / Pattern Analysis / Hypothesis-and-Testing / Implementation), **not** a verbatim heading copy (m1). The rest is re-expressed in fixkit's layer/ledger vocabulary.
-- **Attribution (two places, per prereq #5):**
-  1. A **license header** comment block at the top of `skills/spine/SKILL.md` (after frontmatter): credits the upstream skill, states "Adapted from", names the MIT license + copyright holder, links the source.
-  2. A top-level **`NOTICE`** file reproducing the **full upstream MIT license text** verbatim and crediting `superpowers:systematic-debugging`.
-- This is "vendor, don't reinvent": the spine discipline is copied into the repo (not pulled at runtime), with provenance preserved so upstream improvements can be folded manually later.
-
----
-
-## 4. Mechanized vs judgment vs live-UI (so no work is doubled)
-
-| Check | Owner | How |
+| # | Decision | Value |
 |---|---|---|
-| Happy-path lifecycle reaches `closed` legally | **Mechanized (CC)** | `tests/run-all.js` happy fixture |
-| Integrity guard blocks empty-evidence close | **Mechanized (CC)** | negative fixture #2 |
-| Iron-Law blocks fix-before-root-cause | **Mechanized (CC)** | negative fixture #3 |
-| 3-strikes *fires* escalation (event-driven) | **Mechanized (CC)** | `record_fix_failure` ×3 simulation (#4) |
-| ASSIST cannot auto-close / layer-proof binding | **Mechanized (CC)** | validator invariants + dedicated fixtures (**non-optional**, handoff §4) |
-| Line limits, ≥5 evals (3/2 split), tri-file version sync, "does NOT do" presence, JSON validity, eval object schema | **Mechanized (CC)** | linters in `tests/run-all.js` + ported `validate-plugin.yml` |
-| Spine fidelity, prompt quality of skills/agents, classifier soundness, seam placement for hard-locks, "smallest change" discipline as written | **Judgment (fresh critic subagent + Cowork)** | critic refutation pass; Cowork independent review of fixtures + negative-test definitions |
-| Quality matrix ≥7.0 scoring | **Judgment (fresh critic + Cowork)** | scored breakdown by the *critic* (worker ≠ grader), Cowork confirms |
-| Live-UI (color/spacing/overflow/hydration/console) | **N/A in Phase 0** | no rendered surface exists; explicitly out of scope until Phase 1 web adapter |
+| 1 | Target repo (3 real bugs) | **`/Users/ethannguyen/Data/WorkspaceSWA/shipwithai.io`** — CC located and confirmed it (Astro 5.6, content collections, `file:../shipwithai-design`, `npm run dev`→4321, git branch `feature/new-design`). *Ethan to confirm this is the intended folder (handoff left the path blank).* |
+| 2 | Canonical dev env | `npm run dev` → `localhost:4321` (Astro default) — **confirmed** (no port override in `astro.config.mjs`). |
+| 3 | Live-UI verification | reproduce on prod (`shipwithai.io`) → verify on local dev (`:4321`) → prod re-check after deploy. |
+| 4 | Gap-log destination | **CC proposes:** reuse `shipwithai.io/drafts/V0.{N}-STREAM-{X}-GAPS.md` (see §6). |
 
-This split is explicit so Cowork's independent confirmation targets *only* the judgment + fixture-review lane and does not re-run the mechanized lane.
+**Roles (operating model, doc 12):** CC writes all repo code + runs mechanical verify (build/test/lint/gate) + runs its own critic. **CC cannot verify live UI (no Chrome).** At "fix applied + local dev running" CC posts a **verification request** and HALTs that bug; **Cowork measures the live DOM via Chrome and writes evidence into the ledger**; only then does the ledger advance. **Ethan** approves at two boundaries: plan-in (now) and PR-out.
 
 ---
 
-## 5. Hard-locks seam (note only — NOT built in Phase 0)
+## 2. Engine repo deliverables — `shipwithai-fixkit`
 
-The state machine and `commands/fix.md` step 8 ("Fix — hard-locks checked first") expose a **pre-fix validation hook** and a ledger field `hard_lock_violations: []`. Crucially, `fix.md`'s gate/verify/close steps **cite the validator's rule-codes by name** (`IRON_LAW_FIX_BEFORE_ROOT_CAUSE`, `INTEGRITY_EVIDENCE_EMPTY`, `THREE_STRIKES_NO_ESCALATION`, `ASSIST_CANNOT_CLOSE`, `VERIFICATION_LAYER_MISMATCH`) so the prose orchestrator and the code validator share **one rule vocabulary** — bounding the prose-vs-code drift the Architect flagged. Phase-1/pack overlays will: (a) add hard-lock rules (AD-027 `data-surface`, URL immutability, Emerald Subscribe, JBM-only) as additional `applyTransition` checks keyed off `hard_lock_violations`, and (b) supply a `pre-fix-validation` recipe via the adapter contract. Phase-0 builds the *empty seam* (the field + the documented hook point + the shared rule-code vocabulary), not the org-specific rules.
+### 2.1 New plugin `plugins/shipwithai-fixkit-web/` (thin adapter, doc 09 §9 — no debugging logic)
+
+An adapter is **mappings + recipes + declarations only**: `CONNECTORS.md`, capability declaration, environment/hygiene, reproduce/verify recipes, source-map hints. No orchestration, no layer-agents (those live in core), no debugging logic.
+
+```
+plugins/shipwithai-fixkit-web/
+├── .claude-plugin/
+│   ├── plugin.json              # name "shipwithai-fixkit-web", version 0.1.0, explicit skills[]
+│   └── marketplace.json         # top-level version == plugins[0].version (4-key sync)
+├── manifest.json                # SKILL registry (skillId/name/description/enabled)
+├── CLAUDE.md                    # adapter identity + "What this plugin does NOT do"
+├── README.md
+├── CHANGELOG.md
+├── CONNECTORS.md                # ~~browser→Claude in Chrome · ~~runtime→dev server :4321 ·
+│                                #   ~~test-runner · ~~ci · ~~source control (+ alternatives each)
+├── skills/
+│   ├── web-environment/         SKILL.md + evals/evals.json   (user-invocable: true)
+│   │     # stand up/locate target; canonical port 4321; hard-refresh; cache discipline
+│   │     # (.astro/, node_modules/.vite); kill stale servers; file: symlink dep caveat
+│   ├── web-reproduce/           SKILL.md + evals/evals.json   (user-invocable: false)
+│   │     # recipes per layer/subtype: computed-style read, scrollWidth vs clientWidth,
+│   │     # console read, interaction+state assertion, viewport/resize matrix
+│   ├── web-verify/              SKILL.md + evals/evals.json   (user-invocable: false)
+│   │     # proof recipes mirroring reproduce; emits handoff/v0 when ~~browser absent
+│   └── web-source-map/          SKILL.md + evals/evals.json   (user-invocable: false)
+│         # symptom → file on Astro/content-collections stack (generic web level)
+├── lib/
+│   └── capability.json          # declared tiers: UI=FULL, Logic=FULL, System=FULL
+├── tests/
+│   └── run-all.js               # plugin's OWN blocking gate (limits + evals + version sync)
+└── evals/
+    └── fixtures/
+        └── web-stub/            # ~~browser proof fixture pair (UI analogue of the core
+              # reproduce.test.js / verify.test.js stub): a computed-geometry assertion that
+              # FAILS on a "buggy" fixture and PASSES on a "fixed" fixture, headless/DOM-shim
+```
+
+**Conventions enforced (gate-blocking):** every `SKILL.md` < 200 lines, ends with `## What this … does NOT do`; max fenced code block ≤ 20 lines; `description` < 200 chars; **≥ 1 `user-invocable:false` sub-skill** (we have 3); **≥ 5 evals/skill** (≥3 `shouldTrigger:true`, ≥2 `false`); agents (n/a here — none) would end with `## What this agent does NOT do`. Required files for `validate-plugin.yml`: `plugin.json`, `manifest.json`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`, ≥1 SKILL.md, ≥1 evals.json. The plugin ships its **own** `tests/run-all.js` so it gets a *blocking* gate (the shared CI quality-limit step is warning-only).
+
+**CONNECTORS.md** binds the six `~~category` placeholders the core references; web sets `~~browser`→Claude in Chrome (the live-UI proof tool), `~~runtime`→`astro dev` on :4321, `~~test-runner`→`node`/`vitest`, `~~ci`→GitHub Actions, `~~source control`→git/GitHub; lists alternatives; uses the `## If <connector> Available` graceful-upgrade idiom. UI FULL requires `~~browser` present → when absent, the layer downgrades to ASSIST and `web-verify` emits `handoff/v0` (stops at `candidate`). This is exactly the CC-cannot-see-Chrome path: CC produces the handoff, Cowork is the verification provider.
+
+### 2.2 `handoff/v0` format in core `lib/` (versioned, doc 09 §13.3)
+
+Defined **now** so P3/P4 inherit it. Minimal schema — **steps + assertion + target env/device + `verified_by` slot** — authored as a documented JSON/YAML shape plus a zero-dep validator stub, slotting into the existing `verification` object (`{method, capability_tier, evidence, verified_by}`) and `LAYER_METHODS`. Files:
+
+```
+plugins/shipwithai-fixkit-core/lib/
+├── handoff.schema.md            # the v0 contract (fields, semantics, example) — NEW
+└── handoff-validator.js         # zero-dep: validateHandoff(h) → {ok, violations[]} — NEW
+plugins/shipwithai-fixkit-core/tests/run-all.js   # +section: handoff/v0 acceptance + negative
+```
+
+Proposed `handoff/v0` fields:
+```
+version: "handoff/v0"
+bug_id, symptom_layer (UI|Logic|System), target { env, url, device, viewport }
+steps: [ ordered reproduction/verification actions ]
+assertion: { method (∈ LAYER_METHODS), expected }   # e.g. scrollWidth ≤ clientWidth on `pre`
+verified_by: null   # provider fills (Cowork/CI/device-farm) → then ledger may close
+```
+Because web is FULL/FULL/FULL, Phase 1 ships no *standing* ASSIST path — but the verification-request handshake (CC posts request, Cowork fills `verified_by` + evidence) **is** the `handoff/v0` round-trip in practice, so we exercise the format for real on every UI bug.
+
+### 2.3 Version sync, gate, CHANGELOG
+
+- New plugin starts at **0.1.0**; 4-key sync (its own `plugin.json` ⇄ its `marketplace.json` top-level ⇄ `plugins[0]`), plus a **second entry** in the **root** `.claude-plugin/marketplace.json` `plugins[]` array with `source: "./plugins/shipwithai-fixkit-web"`.
+- Core bumps to **0.2.0** (adds `handoff/v0` — minor, additive). All four core keys move together; CHANGELOG updated; `tests/run-all.js` stays green (`cd plugins/shipwithai-fixkit-core && node tests/run-all.js` exit 0) and the new web plugin's `tests/run-all.js` exits 0.
+- `publish-plugin.yml`/`validate-plugin.yml` are generic over `plugins/*` — **no workflow change needed**.
 
 ---
 
-## 6. Risks / unknowns to resolve before execution
+## 3. Focus repo deliverables — new `shipwithai-fixkit-focus`
 
-- **R1 — Blocking vs warning line limits.** Blueprint treats limits as *warnings*; handoff §3.5 wants CI *green* on them. **Proposed:** fixkit makes them **blocking** in its own `tests/run-all.js` (a documented superset, ADR-0004). *Confirm Cowork accepts stricter-than-blueprint.*
-- **R2 — `## What this does NOT do` is a new convention** (absent in blueprint plugins). **Proposed:** fixkit introduces + lints it (ADR-0004). *Confirm.*
-- **R3 — YAML parsing strategy — RESOLVED to zero-dep, no `package.json`.** The blueprint CI hook is `npm install --ignore-scripts` then `node tests/run-all.js` (validate-plugin.yml:170–171) — there is **no `npm ci`**. A `js-yaml` fallback would require a committed `package.json`+lockfile and contradict "zero CI surgery." **Decision:** ship a narrow, schema-specific frontmatter parser with **no dependencies and no `package.json`**, and retire the fragility risk *now* via parser unit tests in `tests/run-all.js` (R3 no longer deferred). Honors blueprint security rule `--ignore-scripts --save-exact` (CLAUDE.md:118) by having no deps at all.
-- **R4 — Spine condensation.** Upstream is 296 lines; the 200-line limit forces adaptation, not verbatim copy. Risk: under-preserving discipline or over-trimming attribution. **Proposed:** keep Iron Law + phase names + 3-strikes verbatim; `NOTICE` carries full MIT license text. *Critic to judge fidelity.*
-- **R5 — Guard fidelity — RESOLVED (Architect).** Checks #3/#4 are **transition guards**, not snapshot invariants. The runner drives *events* (`applyTransition`): #3 attempts `enter_fixed` on a no-root-cause ledger and asserts refusal; #4 applies `record_fix_failure` ×3 and asserts escalation *fires* on the 3rd. Snapshot validation (`validateLedger`) is retained only for genuine invariants (#2, ASSIST-ceiling, layer-proof) and for auditing committed `.fixkit/` ledgers. *Closes the green-by-construction hole.*
-- **R6 — Repo is not yet a git repo and has no GitHub remote.** Deliverable §7 says "a PR." **Proposed:** `git init` + branch **`phase-0/fixkit-core`** + local commit; open PR if a remote is configured, else write the PR body to **`.omc/plans/PR-BODY.md`** (carrying all §3 evidence) and HALT for Ethan on push/remote. *Confirm remote/PR mechanics — this is the one open question I want Ethan to settle.*
-- **R7 — RESOLVED (dropped).** Per-skill `evals/evals.json` (≥5, 3-trigger/2-must-not split) only; the plugin-root evals file is removed (invisible to CI `find`, non-conventional). No over-build.
-- **R8 — Quality matrix ≥7.0 is judgment.** Scored by the **fresh critic** (worker ≠ grader) + Cowork. Risk of self-grading; mitigated by separate critic context. *Confirm Cowork is the tiebreaker.*
+Currently contains only `README.md`. Scaffold to `shipwithai-plugins` conventions **+ the full Phase-0b Tier-3 harness**, then add the pack.
+
+### 3.1 Full file tree
+
+```
+shipwithai-fixkit-focus/                         # PRIVATE repo; depends on engine by pinned SHA
+├── CLAUDE.md                                    # starter-format; Harness config footer (Tier 3, Obs ON)
+├── README.md                                    # (exists — extend)
+├── CHANGELOG.md
+├── NOTICE                                        # (if any vendored content; likely minimal)
+├── .gitignore                                    # mirror engine: .omc/, node_modules/, .claude/logs/, settings.local.json
+├── .mcp.json                                     # github MCP server (+ any pack-specific)
+├── .claude-plugin/
+│   └── marketplace.json                          # lists shipwithai-fixkit-pack (local) + pinned ENGINE (§5)
+├── .claude/                                      # Tier-3 harness (replicate from engine, repoint to pack)
+│   ├── settings.json                             # permissions + register the 3 hooks
+│   ├── hooks/validate-command.py                 # PreToolUse:Bash safety (stdlib, copy as-is)
+│   ├── hooks/protect-files.py                    # PostToolUse — WARN list repointed to pack paths (§3.3)
+│   ├── hooks/observe.py                           # PostToolUse observability logger (copy as-is)
+│   ├── agents/drift-monitor.md                   # repoint SSOT paths to pack + pinned engine
+│   ├── memory/MEMORY.md + project.md             # focus-specific decisions
+│   └── starter-context.json                      # version "1.2", tier "full", observability true
+├── docs/
+│   ├── architecture.md                           # focus/pack architecture
+│   ├── CODEMAPS/fixkit-pack.md                    # navigation map for the pack
+│   └── adr/
+│       ├── 0001-blueprints-as-source-of-truth.md # carried over
+│       ├── 0002-plan-before-execute.md           # carried over
+│       ├── 0003-read-before-edit.md              # carried over
+│       └── 0004-pack-overlay-and-hard-locks.md   # NEW: focus-specific extension ADR
+├── .github/workflows/
+│   ├── validate-plugin.yml                        # PR CI (copy)
+│   └── publish-plugin.yml                          # publish-on-bump (copy)
+└── plugins/shipwithai-fixkit-pack/
+    ├── .claude-plugin/{plugin.json, marketplace.json}   # 4-key sync, v0.1.0
+    ├── manifest.json
+    ├── CLAUDE.md                                   # CONFIG PROFILE: thresholds, dev port 4321,
+    │                                               #   hard-locks tunables (SSOT — not in skills)
+    ├── README.md  CHANGELOG.md  CONNECTORS.md      # ShipWithAI's concrete servers
+    ├── skills/
+    │   ├── shipwithai-hard-locks/    SKILL.md + evals/   (user-invocable: false)
+    │   ├── design-consumer-routing/  SKILL.md + evals/   (user-invocable: false)
+    │   └── astro-recipes/            SKILL.md + evals/   (user-invocable: true)
+    ├── packs/shipwithai/
+    │   ├── hard-locks.md                            # AD-027 data-surface, URL immutability,
+    │   │                                            #   emerald Subscribe, JBM-only — pre-fix enforced
+    │   ├── design-consumer-routing.md               # organism→gap-log→escalated; never fork organism
+    │   ├── astro-recipes.md                          # client:* hydration, content collections
+    │   ├── env-hygiene.md                            # canonical port, cache discipline
+    │   ├── verify-snippet.js                          # computed-style/scrollWidth verify helper
+    │   └── component-map.seed.md                      # seeded from @shipwithai/design inventory
+    └── tests/run-all.js                              # pack's OWN blocking gate
+```
+
+### 3.2 Pack content (overlays the web adapter; adds, never removes — doc 09 §10)
+
+- **hard-locks.md** — encodes AD-027 `data-surface`, URL immutability, emerald Subscribe, JBM-only. **Enforced pre-fix** via the core seam: the pre-fix step populates the ledger's `hard_lock_violations` array; a new core validator rule refuses `enter_fixed`/`enter_candidate` when it is non-empty (see §7 negative test 1, §8). Tunable values live in the pack `CLAUDE.md`, **never hardcoded in skill bodies**.
+- **design-consumer-routing.md** — the Bug-1 rule: when `root_cause_layer == upstream` (`@shipwithai/design`), **zero consumer edits**, emit a gap-log row (§6), ledger → `escalated`. Never fork/patch the organism in the consumer.
+- **astro-recipes.md** — `client:*` hydration recipe (Bug 4), content-collections notes; overlay on the web adapter's generic recipes.
+- **env-hygiene.md + verify-snippet.js** — port 4321, hard-refresh, clear `.astro/`+`node_modules/.vite` after editing the `file:`-linked design package; the verify snippet returns computed geometry/console state for the verification-request handshake.
+- **component-map.seed.md** — seeded from `@shipwithai/design`'s `docs/COMPONENT-INVENTORY.md` (11 organisms incl. ArticleHero, ReactionsBar, ArticleBody).
+
+### 3.3 Harness adaptations (only two files carry engine-specifics)
+
+- `protect-files.py` WARN list → repoint from `lib/ledger-validator.js`/`tests/run-all.js` to `packs/shipwithai/hard-locks.md`, `CONNECTORS.md`, `CLAUDE.md` config profile, and the marketplace pinned-source block. Keep the hard-block secret patterns as-is.
+- `drift-monitor.md` → repoint SSOT comparison to the pack + the pinned engine SHA (flag drift if the local engine HEAD ≠ pinned `sha`).
 
 ---
 
-## 7. Execution sequence (post-approval, autonomous to PR)
+## 4. Engine-pinning strategy (no remote exists yet)
 
-1. `git init`; branch `phase-0/fixkit-core`; scaffold repo-level files (marketplace, CI, NOTICE, docs/ADRs, top-level md).
-2. Author `shipwithai-fixkit-core`: schema doc → `ledger-validator.js` (`validateLedger` + `applyTransition`) + frontmatter parser → fixtures → runner/linters. **TDD:** write fixtures + transition tests first, watch them fail, then make the state machine green.
-3. Author skills (spine condensed + triage + verification + regression-guard; `user-invocable:false` on the three sub-skills), agents, `commands/fix.md` (citing validator rule-codes), `manifest.json` (trigger phrases ride in each skill `description`, per blueprint shape), CONNECTORS, per-skill evals — each skill/agent ending with `## What this … does NOT do`.
-4. Run `node tests/run-all.js` + the ported `validate-plugin.yml` locally; paste full output as §3-gate evidence.
-5. **Fresh critic subagent** refutation pass (separate context, worker≠grader) → record verdict + quality-matrix ≥7.0 score breakdown.
-6. CHANGELOG + 4-key version sync; write PR body to `.omc/plans/PR-BODY.md` with all §3 evidence + critic refutation record.
-7. **HALT** for Ethan's PR-out approval (open the PR only if a remote is configured).
+**Canonical target form (doc 08 §1)** — focus `marketplace.json` lists engine plugins via a `source` *object*:
+```json
+"source": { "source": "git-subdir", "url": "https://github.com/shipwithai/shipwithai-fixkit.git",
+            "path": "plugins/shipwithai-fixkit-core", "ref": "main", "sha": "<pinned>" }
+```
+No GitHub remote exists today, so `url`+`sha` can't resolve. **Interim proposal (two-stage):**
+
+- **Stage A — local-SHA pin (now, no remote).** Use a local `git-subdir`-equivalent source pointing at the sibling working copy, pinned to a real commit SHA so the pin is *meaningful and auditable*:
+  ```json
+  "source": { "source": "git-subdir",
+              "url": "file:///Users/ethannguyen/Data/WorkspaceSWA/shipwithai-fixkit",
+              "path": "plugins/shipwithai-fixkit-core", "ref": "main", "sha": "<engine HEAD after 2.x lands>" }
+  ```
+  (Plus the same object for `shipwithai-fixkit-web`.) The `sha` is recorded the moment the engine's Phase-1 work is committed; `drift-monitor.md` flags if the local engine HEAD diverges from the pinned `sha`. If the local resolver can't honor `git-subdir+file://`, fall back to a documented relative path source (`../shipwithai-fixkit/plugins/shipwithai-fixkit-core`) **with the target SHA recorded in a comment + CHANGELOG**, so the migration is mechanical.
+- **Stage B — remote migration (once pushed).** When the engine repo is pushed to its GitHub remote: swap `url` → the `https://github.com/...` form, keep `path`/`ref`, re-pin `sha` to the pushed commit. One-line change per engine plugin entry; recorded as a focus CHANGELOG entry + ADR note. Negative test 3 (engine standalone still installs) is unaffected because the engine repo's own marketplace uses self-relative `source: "./..."`.
+
+**Risk control:** the pin's whole value is the immutable `sha`; we never ship a floating `ref`-only pin. Verification provider (Cowork) and CI can both assert `installed engine commit == pinned sha`.
 
 ---
 
-## ADR (for final plan)
-- **Decision:** Deterministic Phase-0 gate via a zero-dep Node ledger-state validator + committed YAML fixtures, run by `tests/run-all.js`; fixkit extends the blueprint with blocking limits, ≥5 evals, and the `## What this does NOT do` convention (ADR-0004).
-- **Drivers:** determinism (handoff §0.2), blueprint conformance, Phase-1 seam.
-- **Alternatives:** Python validator (CI-convention divergence); bash harness (nested-YAML brittleness). Both rejected.
-- **Consequences:** Repo carries a small JS test surface (justified — it is the trust anchor); strict-superset CI; fixtures double as rule documentation.
-- **Follow-ups:** Phase-1 adds hard-lock rules + fixtures to the same validator/runner; revisit `js-yaml` if the narrow parser proves fragile (R3).
+## 5. Focus `marketplace.json` (pack + pinned engine together)
+
+Named `"shipwithai-fixkit-focus"`. `plugins[]` =
+1. **local pack** — `{ "name": "shipwithai-fixkit-pack", "version": "0.1.0", "source": "./plugins/shipwithai-fixkit-pack", ... }`
+2. **pinned engine core** — `source:{git-subdir,...core...,sha}` (§4)
+3. **pinned engine web** — `source:{git-subdir,...web...,sha}` (§4)
+
+So installing from focus yields **pinned engine (core+web) + the ShipWithAI pack together** (negative test 3a); the engine repo still installs standalone via its own self-relative marketplace (negative test 3b).
+
+---
+
+## 6. Gap-log: format + destination (Decision 4)
+
+**Destination — reuse the existing, active convention** (do not invent): `shipwithai.io/drafts/V0.{N}-STREAM-{X}-GAPS.md`, under a **"Bug-fix round — design-organism root causes"** section. This file already exists (`V0.28-STREAM-C-GAPS.md`) and **already contains the Bug-1 entry** (lines 28-50) in exactly the right shape — it is the team's operating gap-log, governed by `@shipwithai/design` CLAUDE.md "closure-shape #4" (default zero design-repo edits; consumer never patches the organism).
+
+**Row schema (matches existing entries):** a titled subsection per design-organism root cause with: **Symptom · Render system · Confirmed cause (file:line) · Why-not-consumer · Recommended design-session fix · Hard-lock check · Status (OPEN→design session)**. For the migration-gap table form, the columns are `Component | Gap | Local behavior | Design behavior | Workaround | Design-repo action`.
+
+**Pack behavior:** `design-consumer-routing` skill, on `root_cause_layer == upstream`, appends a row here, sets ledger `state: escalated`, and makes **zero edits** to `shipwithai.io/src/**`. The engine's independently-produced Bug-1 entry must match the existing oracle entry's cause and recommended fix.
+
+**Alt destination (if Ethan prefers a design-side canonical sink):** `@shipwithai/design/docs/ROADMAP.md` backlog. Recommendation: stay with the consumer-side per-stream `*-GAPS.md` — it is where the workflow already lives.
+
+---
+
+## 7. Bug 3 / 4 / 1 execution choreography (the gate)
+
+CC runs each bug through `/shipwithai-fixkit-core:fix` (orchestrator on the main thread → isolated UI layer-agent → spine REPRODUCE→ISOLATE→DIAGNOSE→FIX→VERIFY→GUARD). At "fix applied + local dev running", CC HALTs that bug with a **verification request** (the `handoff/v0`: URL, exact elements, expected computed values/console state); **Cowork measures live DOM via Chrome and writes `evidence` + `verified_by` into the ledger**; only then does `applyTransition` advance to `verified`→`closed`.
+
+| Bug | Layer/tier | CC does (repo) | Verification request → Cowork measures | Ledger terminal |
+|---|---|---|---|---|
+| **Bug 3** code overflow | UI · FULL | Reproduce `scrollWidth > clientWidth` recipe; diagnose the `pre`/overflow rule; **consumer fix** (likely `CodePreviewSnippet.astro` and/or other consumer `pre` renderers — ArticleBody body fences already covered) | request: `scrollWidth ≤ clientWidth` on the `pre` at target widths + console clean | `closed` w/ computed-geometry evidence + `verified_by` |
+| **Bug 4** ReactionsBar | UI · FULL | Reproduce dead click + 4× storage errors; diagnose missing hydration/behavior wiring; **consumer fix** in `BlogPostPage.astro` (wire `initReactionsBar`); remove dead `reactions/ReactionBar.tsx` | request: clicking Useful/Learned/Saved changes state on live site; 4× storage exceptions gone | `closed` w/ interaction + console evidence |
+| **Bug 1** ArticleHero | UI symptom · **root cause = design organism** | Reproduce 96px gap; diagnose `root_cause_layer == upstream` (`ArticleHero.astro` additive `--no-image` padding + lead margin); **pack rule fires → gap-log row (§6), ZERO consumer edits** | request: confirm `git diff` of consumer = empty; gap-log row present | **`escalated`** (never "fixed"); evidence = gap-log entry |
+
+Live-UI verification path (Decision 3): reproduce on prod `shipwithai.io` → verify on local dev `:4321` → prod re-check after deploy. **Bug 1 must end `escalated`, and the consumer `git diff` must be empty** — this is the most important test (the engine correctly *refuses*).
+
+---
+
+## 8. Negative tests (the Phase-1 gate's refusal proofs)
+
+1. **Hard-lock blocks pre-fix.** A fix attempt that would strip `data-surface` is blocked *before* the edit: the pre-fix step writes `hard_lock_violations: ["data-surface-removed"]`; a **new core validator rule** refuses `enter_fixed`/`enter_candidate` when `hard_lock_violations` is non-empty. **Tests-first** (ADR + CLAUDE.md): write the failing transition fixture first, then the guard, mutation-check it bites. Wired through the adapter/pack path *and* unit-tested in core `run-all.js`.
+2. **UI bug cannot `close` on a source diff.** Already a core guard (`VERIFICATION_LAYER_MISMATCH` via `LAYER_METHODS.UI`). Prove it **fires through the adapter path too**: a UI ledger whose only evidence is a code diff (method not in `LAYER_METHODS.UI`) is refused.
+3. **Install integrity.** (a) Focus marketplace installs **pinned engine (core+web) + pack together**; (b) engine repo still installs **standalone**. Verified by resolving both marketplaces (documented procedure + a check that installed engine commit == pinned `sha`).
+
+Executable where possible (1, 2 as `run-all.js` sections / fixtures); 3 as a documented procedure + critic check.
+
+---
+
+## 9. Acceptance / cross-phase bar (doc 10 §done)
+
+- All three acceptance rows pass (Bug 3 `closed`, Bug 4 `closed`, Bug 1 `escalated` w/ gap-log + empty consumer diff).
+- All three negative tests pass.
+- **CI green on both repos:** SKILL.md <200 / references <150 / bundles <500 / inline code ≤20 / description <200 chars; **4-key version sync**; **≥5 evals/skill** (3/2 split); every skill/agent ends with `## What this … does NOT do`; compose by convention (explicit `skills[]`, no `plugin.json` dep wiring).
+- **Quality matrix ≥ 8.0 on the pack** (ship threshold — P1 is public-facing proof).
+- CHANGELOG + versions bumped (core 0.1.0→0.2.0; web 0.1.0; pack 0.1.0).
+- **Critic refutation before done** (fresh reviewer, worker ≠ grader); **evidence not assertions**; the mandatory deslop pass + post-deslop regression run.
+- **Security review before touching `.claude/hooks/`, `assets/`, `manifest.json`** (ADR / CLAUDE.md).
+
+---
+
+## 10. Work breakdown & sequencing (post-approval, autonomous to PR)
+
+1. **Engine — `handoff/v0` (tests-first)** → core `lib/handoff.schema.md` + `handoff-validator.js` + `run-all.js` section; core → 0.2.0.
+2. **Engine — hard-lock seam guard (tests-first)** → new `applyTransition` branch + validator rule on `hard_lock_violations`; failing fixture first, mutation-check. *(Security review: touches the trust anchor — guard-change protocol.)*
+3. **Engine — web adapter plugin** → CONNECTORS/skills/capability/recipes/source-map/web-stub fixture + its own `run-all.js`; 4-key sync incl. root marketplace second entry.
+4. **Focus — scaffold + Tier-3 harness** → repo skeleton, `.claude/` harness (adapt 2 files), docs/ADRs, workflows, `.mcp.json`. *(Security review: hooks.)*
+5. **Focus — pack** → hard-locks / routing / astro-recipes / env-hygiene / verify-snippet / component-map seed + config-profile CLAUDE.md + CONNECTORS + own gate; pinned-engine marketplace (§4–5).
+6. **Run the gate (3 bugs + 3 negatives)** → for each UI bug: CC fixes + builds + posts verification request + **HALT for Cowork live-DOM evidence** → ledger advances. Bug 1 → gap-log + escalated.
+7. **Quality matrix ≥8.0 on pack; critic refutation; deslop + regression; CHANGELOG/versions; PR-out HALT for Ethan.**
+
+Steps 1–5 are largely independent (engine vs focus) and parallelizable; step 6 depends on 1–5 + Cowork availability; the **gate is gated on Cowork's live-UI measurements** (CC cannot self-verify UI).
+
+---
+
+## 11. Open questions for plan review (Ethan / Cowork)
+
+1. **Bug pre-state (load-bearing, §0).** Bugs 1/3/4 are already diagnosed (gap-log + working-tree commits). Run the engine **as-if-undiscovered** with existing artifacts held out as ground-truth oracles (recommended), or **reset the consumer/design working trees** to a pre-fix baseline first? This determines whether the gate is a genuine independent test.
+2. **Target repo path (§1 Decision 1).** Confirm `/Users/ethannguyen/Data/WorkspaceSWA/shipwithai.io` (branch `feature/new-design`) is the intended target. It has uncommitted changes touching the very files in scope — do we branch (`phase-1/<topic>`) off current HEAD or off a clean baseline?
+3. **Gap-log destination (§6).** Confirm reuse of `shipwithai.io/drafts/V0.{N}-STREAM-{X}-GAPS.md` (recommended) vs a design-side `ROADMAP.md` sink. And: which `V0.{N}`/stream label does the Phase-1 round write under?
+4. **Engine pin interim (§4).** Approve the local-SHA `git-subdir+file://` pin (with relative-path fallback) as the interim, with the documented one-line migration once the remote exists?
+5. **Bug 3 scope.** Confirm the overflow lives in the consumer (`CodePreviewSnippet.astro` / other consumer `pre` renderers), not the design `ArticleBody` (already has `overflow-x:auto`) — i.e. Bug 3 is genuinely a consumer FULL-loop fix, not a second escalation.
+6. **Bug 4 dead-code.** OK to **delete** the orphaned React `src/components/reactions/ReactionBar.tsx` as part of the fix (it's the storage-error source and is never hydrated), or only wire `initReactionsBar` and leave the dead file?
+
+---
+
+## 12. Risks
+
+| Risk | Mitigation |
+|---|---|
+| **Engine pin can't resolve without a remote** | Two-stage strategy (§4): local-SHA `git-subdir+file://`, relative-path fallback, mechanical migration once pushed; drift-monitor asserts HEAD==sha. |
+| **CC cannot verify live UI** | Built into the operating model: `handoff/v0` verification-request → Cowork measures live DOM, writes `verified_by`+evidence; ledger blocks at `candidate` until then (`ASSIST_CANNOT_CLOSE`). |
+| **Bugs already fixed → fake-green gate** | §0/Q1 ruling: hold existing artifacts as oracles or reset to baseline; engine must reproduce conclusions independently (don't copy the gap-log). |
+| **Touching the trust anchor (`ledger-validator.js`) for the hard-lock guard** | Tests-first, mutation-checked, never weaken a guard without replacement; security review; the seam was designed-for in Phase 0 (`hard_lock_violations` already parsed). |
+| **`file:`-symlinked design package caching** | env-hygiene recipe: restart `astro dev`, clear `.astro/` + `node_modules/.vite` after organism edits. |
+| **Bug 1 accidental consumer edit** | Pack routing forbids `src/**` writes on `root_cause_layer==upstream`; gate asserts empty consumer `git diff`; the refusal is the pass condition. |
+| **Quality matrix ≥8.0 on a public-facing pack** | Critic refutation pass + deslop + the full convention gate before PR-out. |
+| **2-repo version-sync drift** | 4-key sync enforced in each repo's `run-all.js`; pinned `sha` is the cross-repo anchor. |
+
+---
+
+> **HALT (ADR-0002).** Awaiting Cowork review + Ethan's plan-in approval. On approval, CC executes §10 autonomously to a PR, HALTing again only for live-UI verification handshakes (Cowork) and PR-out (Ethan).

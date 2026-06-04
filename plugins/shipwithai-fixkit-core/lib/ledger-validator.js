@@ -36,6 +36,13 @@ function tier(l) {
 function clone(l) {
   return JSON.parse(JSON.stringify(l || {}));
 }
+// Hard-lock pre-fix gate (Phase-1 seam), shared by every post-root-cause transition so the
+// transition surface and the invariant auditor cannot drift. Returns a violation or null.
+function hardLockViolation(l, event) {
+  return (Array.isArray(l.hard_lock_violations) && l.hard_lock_violations.length)
+    ? { code: 'HARD_LOCK_VIOLATION', message: `${event} refused: unresolved hard_lock_violations [${l.hard_lock_violations.join(', ')}] (resolve or escalate before fixing)` }
+    : null;
+}
 
 // ---------------------------------------------------------------------------
 // validateLedger — invariant auditor for a static ledger snapshot.
@@ -63,6 +70,12 @@ function validateLedger(l) {
   // Scoped to verified/closed so the ASSIST `candidate` and `escalated` paths are unaffected.
   if ((state === 'verified' || state === 'closed') && blank(l.fix)) {
     v.push({ code: 'FIX_NOT_RECORDED', message: `state '${state}' requires a non-empty fix (what change was applied)` });
+  }
+  // Hard-lock guard (Phase-1 seam): a post-fix ledger must not carry unresolved hard-lock
+  // violations. Org packs populate hard_lock_violations pre-fix; an unresolved lock means the
+  // fix should never have been applied (it must be resolved or the bug escalated first).
+  if (POST_ROOTCAUSE_STATES.includes(state) && Array.isArray(l.hard_lock_violations) && l.hard_lock_violations.length) {
+    v.push({ code: 'HARD_LOCK_VIOLATION', message: `state '${state}' must not carry unresolved hard_lock_violations [${l.hard_lock_violations.join(', ')}]` });
   }
   // ASSIST ceiling: no runner -> no auto-close -> handoff/v0 (max candidate).
   if (state === 'closed' && tier(l) === 'ASSIST') {
@@ -124,6 +137,9 @@ function applyTransition(ledger, event, payload) {
       const v = [];
       if (!PREDECESSORS[event].includes(cur)) v.push({ code: 'ILLEGAL_TRANSITION', message: `cannot ${event} from '${cur}'` });
       if (blank(l.root_cause)) v.push({ code: 'IRON_LAW_FIX_BEFORE_ROOT_CAUSE', message: `${event} refused: root_cause is empty (Iron Law)` });
+      // Hard-lock pre-fix gate (Phase-1 seam): an org pack populates hard_lock_violations before
+      // the FIX step; a non-empty list blocks fixing until the lock is resolved or the bug escalated.
+      { const hl = hardLockViolation(l, event); if (hl) v.push(hl); }
       if (event === 'enter_candidate' && tier(l) !== 'ASSIST') v.push({ code: 'CANDIDATE_REQUIRES_ASSIST', message: 'candidate state is only for ASSIST tier' });
       if (v.length) return refuse(v);
       l.state = event === 'enter_fixed' ? 'fixed' : 'candidate';
@@ -135,6 +151,7 @@ function applyTransition(ledger, event, payload) {
       // Defense-in-depth: the Iron Law also holds at verify (fixed/candidate are already gated).
       if (blank(l.root_cause)) v.push({ code: 'IRON_LAW_FIX_BEFORE_ROOT_CAUSE', message: 'enter_verified refused: root_cause is empty (Iron Law)' });
       if (blank(l.fix)) v.push({ code: 'FIX_NOT_RECORDED', message: 'enter_verified refused: fix is empty (record the applied change)' });
+      { const hl = hardLockViolation(l, 'enter_verified'); if (hl) v.push(hl); } // defense-in-depth
       if (v.length) return refuse(v);
       l.state = 'verified';
       return { ok: true, ledger: l, violations: [] };
@@ -146,6 +163,7 @@ function applyTransition(ledger, event, payload) {
       if (blank(l.verification.verified_by)) v.push({ code: 'INTEGRITY_VERIFIER_MISSING', message: 'close refused: verification.verified_by is missing' });
       if (blank(l.fix)) v.push({ code: 'FIX_NOT_RECORDED', message: 'close refused: fix is empty (record the applied change)' });
       if (tier(l) === 'ASSIST') v.push({ code: 'ASSIST_CANNOT_CLOSE', message: 'close refused: ASSIST tier (use handoff/v0 -> candidate)' });
+      { const hl = hardLockViolation(l, 'close'); if (hl) v.push(hl); } // defense-in-depth
       if (v.length) return refuse(v);
       l.state = 'closed';
       return { ok: true, ledger: l, violations: [] };

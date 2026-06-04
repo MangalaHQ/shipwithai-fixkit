@@ -1,0 +1,41 @@
+{
+  "skillId": "web-reproduce",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "web-reproduce-01",
+      "prompt": "Reproduce the code-block overflow on the blog post — the pre element scrolls horizontally.",
+      "expectedBehavior": "Run the layout/overflow recipe on the live target: measure scrollWidth vs clientWidth on the pre and confirm scrollWidth > clientWidth as the reproduction.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-reproduce-02",
+      "prompt": "Reproduce: the Save button does nothing when clicked.",
+      "expectedBehavior": "Run the interaction+state recipe: drive the click via the browser, then assert the expected state change did not happen (the dead-control reproduction).",
+      "category": "interaction",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-reproduce-03",
+      "prompt": "Reproduce the layout breaking only on mobile widths.",
+      "expectedBehavior": "Run the viewport/resize matrix recipe: sweep widths (e.g. 1280/768/375), re-measure at each, and record which widths fail.",
+      "category": "responsive",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-reproduce-04",
+      "prompt": "Confirm the overflow is gone now that I fixed the pre CSS.",
+      "expectedBehavior": "Do NOT trigger web-reproduce — proving a fix is verification (web-verify), which mirrors the reproduce measurement; reproduce only triggers the failure.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "web-reproduce-05",
+      "prompt": "Write me a new responsive navbar component.",
+      "expectedBehavior": "Do NOT trigger web-reproduce — this is feature authoring, not reproducing an existing web defect.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

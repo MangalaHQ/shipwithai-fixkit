@@ -1,0 +1,41 @@
+{
+  "skillId": "web-verify",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "web-verify-01",
+      "prompt": "Verify the code-block overflow fix.",
+      "expectedBehavior": "Mirror the reproduce measurement: re-measure scrollWidth vs clientWidth on the same pre and assert scrollWidth <= clientWidth; record the numbers as evidence with a computed-style/dom-assertion method.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-verify-02",
+      "prompt": "Verify the overflow fix, but there's no browser connector wired in this session.",
+      "expectedBehavior": "Do not auto-close: the UI layer is ASSIST without ~~browser, so emit a handoff/v0 with the 4321 target, mirrored steps, and a UI LAYER_METHODS assertion (verified_by:null); the ledger stops at candidate.",
+      "category": "assist-handoff",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-verify-03",
+      "prompt": "Verify the Save button works now.",
+      "expectedBehavior": "Mirror the interaction reproduce: re-drive the same click and assert the expected state change now happens, using an interaction-assertion proof method.",
+      "category": "interaction",
+      "shouldTrigger": true
+    },
+    {
+      "id": "web-verify-04",
+      "prompt": "The source diff shows I changed the pre's white-space to pre-wrap, so the UI overflow bug is fixed — close it.",
+      "expectedBehavior": "Do NOT trigger a close on the diff — a rendered UI bug never closes on a source diff; verification must re-run the live measurement (mirror principle).",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "web-verify-05",
+      "prompt": "Reproduce the overflow so I can see it fail.",
+      "expectedBehavior": "Do NOT trigger web-verify — triggering the failure is reproduction (web-reproduce); verify only re-runs that observation to prove the fix.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

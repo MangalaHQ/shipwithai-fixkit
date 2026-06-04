@@ -1,0 +1,6 @@
+{
+  "UI": "FULL",
+  "Logic": "FULL",
+  "System": "FULL",
+  "note": "FULL on the Astro + content-collections stack. UI FULL is conditional on ~~browser (Claude in Chrome): when no browser connector is wired, the UI layer downgrades to ASSIST and web-verify emits handoff/v0 (core lib/handoff.schema.md), stopping the ledger at candidate. Logic FULL needs ~~test-runner (node/vitest); System FULL needs the shell / ~~ci (GitHub Actions)."
+}

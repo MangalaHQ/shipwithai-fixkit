@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "bv-1", "prompt": "Confirm the previously-failing test now passes and the suite is green.", "expectedBehavior": "Runs the Logic proof (failing-test-passes + suite green).", "category": "logic", "shouldTrigger": true },
+    { "id": "bv-2", "prompt": "Verify the boundary log now shows the corrected normalized path.", "expectedBehavior": "Re-runs the instrumented boundary and asserts the record.", "category": "system", "shouldTrigger": true },
+    { "id": "bv-3", "prompt": "Prove the integration bug is fixed before we close it.", "expectedBehavior": "Mirrors reproduction with boundary/pipeline proof, not a diff.", "category": "system", "shouldTrigger": true },
+    { "id": "bv-4", "prompt": "Verify the rendered page has no horizontal overflow.", "expectedBehavior": "Does not trigger — UI computed-style proof, not this adapter.", "category": "ui-refused", "shouldTrigger": false },
+    { "id": "bv-5", "prompt": "Draft the CHANGELOG entry for this release.", "expectedBehavior": "Does not trigger — documentation, not verification.", "category": "off-domain", "shouldTrigger": false }
+  ]
+}

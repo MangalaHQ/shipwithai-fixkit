@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "bs-1", "prompt": "Where does the /orders 500 most likely originate in the code?", "expectedBehavior": "Points to the data-layer/integration rung for a 500 edge.", "category": "system", "shouldTrigger": true },
+    { "id": "bs-2", "prompt": "Map this wrong-balance symptom to the right layer.", "expectedBehavior": "Points to the service/domain rung for a wrong computed value.", "category": "logic", "shouldTrigger": true },
+    { "id": "bs-3", "prompt": "Which file handles the /api/checkout route?", "expectedBehavior": "Points to the route/handler rung.", "category": "handler", "shouldTrigger": true },
+    { "id": "bs-4", "prompt": "Which Astro component renders the hero section?", "expectedBehavior": "Does not trigger — web stack, wrong adapter.", "category": "off-domain", "shouldTrigger": false },
+    { "id": "bs-5", "prompt": "Run the production deploy pipeline now.", "expectedBehavior": "Does not trigger — deployment, not source mapping.", "category": "off-domain", "shouldTrigger": false }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "br-1", "prompt": "Reproduce the 500 on the /orders endpoint before we touch anything.", "expectedBehavior": "Reproduces in the failing env and instruments the boundary.", "category": "system", "shouldTrigger": true },
+    { "id": "br-2", "prompt": "Write a failing test that captures the wrong order total.", "expectedBehavior": "Authors a failing Logic test first (reproduce-by-test).", "category": "logic", "shouldTrigger": true },
+    { "id": "br-3", "prompt": "Instrument the DB boundary to show the bad query result.", "expectedBehavior": "Logs at the data-layer seam before changing code.", "category": "system", "shouldTrigger": true },
+    { "id": "br-4", "prompt": "Explain conceptually what an off-by-one error is.", "expectedBehavior": "Does not trigger — no concrete bug to reproduce.", "category": "conceptual", "shouldTrigger": false },
+    { "id": "br-5", "prompt": "The CSS grid is misaligned on mobile; reproduce it.", "expectedBehavior": "Does not trigger — UI symptom, refused (re-route at triage).", "category": "ui-refused", "shouldTrigger": false }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "shipwithai-fixkit-backend",
+  "description": "Thin backend adapter for the fixkit engine: maps the ~~connector placeholders to concrete backend tooling (npm/vitest/jest/pytest test runners, CI pipelines, log/monitoring boundaries) and ships per-layer reproduce/verify/source-map recipes for runnable server stacks. Logic/System = FULL, UI = NONE. No debugging logic — that lives in core.",
+  "version": "0.1.0",
+  "author": {
+    "name": "ShipWithAI",
+    "url": "https://shipwithai.io"
+  },
+  "homepage": "https://shipwithai.io/plugins/fixkit-backend",
+  "repository": "https://github.com/shipwithai/shipwithai-fixkit",
+  "license": "MIT",
+  "keywords": ["bug-fix", "backend", "adapter", "logic", "system", "integration", "reproduce", "verify", "source-map"],
+  "skills": [
+    "./skills/backend-environment",
+    "./skills/backend-reproduce",
+    "./skills/backend-verify",
+    "./skills/backend-source-map"
+  ]
+}

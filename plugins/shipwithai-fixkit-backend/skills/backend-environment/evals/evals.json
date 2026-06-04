@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "be-1", "prompt": "Start the backend service so I can reproduce the 500 on /orders.", "expectedBehavior": "Locates/stands up the runnable target on its canonical port.", "category": "environment", "shouldTrigger": true },
+    { "id": "be-2", "prompt": "The test database has stale rows from the last run; reset it.", "expectedBehavior": "Applies state hygiene: clean test DB before reproduce.", "category": "environment", "shouldTrigger": true },
+    { "id": "be-3", "prompt": "Kill the stale node process holding the API port.", "expectedBehavior": "Frees the canonical port / kills orphaned listeners.", "category": "environment", "shouldTrigger": true },
+    { "id": "be-4", "prompt": "Change the hero button color on the marketing page.", "expectedBehavior": "Does not trigger — a UI task, not backend environment.", "category": "off-domain", "shouldTrigger": false },
+    { "id": "be-5", "prompt": "Write the failing unit test that captures the wrong total.", "expectedBehavior": "Does not trigger — that is backend-reproduce, not environment.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

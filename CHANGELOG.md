@@ -3,6 +3,12 @@
 All notable changes to the repo scaffold are documented here. Per-plugin changes live in each
 plugin's `CHANGELOG.md`.
 
+## [Phase 2] — 2026-06-04
+
+### Added
+- `plugins/shipwithai-fixkit-backend` v0.1.0 — thin backend adapter (Logic/System = FULL, UI = NONE);
+  registered as the third entry in the root `.claude-plugin/marketplace.json`. See its own CHANGELOG.
+
 ## [0.1.0] — 2026-06-03
 
 ### Added

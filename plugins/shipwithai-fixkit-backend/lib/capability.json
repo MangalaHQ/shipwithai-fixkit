@@ -1,0 +1,6 @@
+{
+  "UI": "NONE",
+  "Logic": "FULL",
+  "System": "FULL",
+  "note": "FULL on a runnable backend stack. Logic FULL needs ~~test-runner (npm test / vitest / jest / pytest); System FULL needs the shell / ~~ci (pipeline) + ~~monitoring (boundary logs). UI = NONE: a UI-symptom bug is refused by this adapter and must be re-routed at triage to a UI-capable adapter (arch doc 09 §6)."
+}

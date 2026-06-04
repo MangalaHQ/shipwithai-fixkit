@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "ks-1", "prompt": "The total is wrong on both Android and iOS — where do I look?", "expectedBehavior": "Points at commonMain (shared logic) — wrong on both platforms means shared root cause.", "category": "source-map-shared", "shouldTrigger": true },
+    { "id": "ks-2", "prompt": "The screen only misbehaves on iOS; which source set?", "expectedBehavior": "Points at iosMain / the SwiftUI view layer — wrong on one platform means platform source set (UI/ASSIST).", "category": "source-map-platform", "shouldTrigger": true },
+    { "id": "ks-3", "prompt": "We have an expect/actual mismatch causing divergent behaviour — narrow it.", "expectedBehavior": "Flags the expect/actual seam; check the actual on the failing platform first.", "category": "source-map-seam", "shouldTrigger": true },
+    { "id": "ks-4", "prompt": "Write a failing test for the shared formatter.", "expectedBehavior": "Does not trigger — that is kmp-reproduce, not source-map.", "category": "wrong-step", "shouldTrigger": false },
+    { "id": "ks-5", "prompt": "Give me our org's exact module layout and package conventions.", "expectedBehavior": "Does not trigger — org/framework-specific maps belong to a pack overlay, not this generic skill.", "category": "off-domain", "shouldTrigger": false }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "UI": "ASSIST",
+  "Logic": "FULL",
+  "System": "FULL",
+  "note": "Logic FULL: shared commonMain logic runs on the JVM via ~~test-runner (./gradlew :shared:test). System FULL: a Gradle build / dependency / config bug is run and OBSERVED from the JVM/host (./gradlew build, ~~ci) — proof methods pipeline-run / ci-run / integration-test. UI = ASSIST: Compose/SwiftUI render on a device the agent cannot observe (no ~~browser, no device connector); the engine builds + diagnoses but emits handoff/v0 (core lib/handoff.schema.md), ceiling candidate, until a provider fills verified_by. Boundary: a System symptom that manifests ONLY at platform runtime (device-only, unobservable from the host) is not a host-System bug — it routes to the UI/ASSIST lane or to Android/iOS adapters (P4)."
+}

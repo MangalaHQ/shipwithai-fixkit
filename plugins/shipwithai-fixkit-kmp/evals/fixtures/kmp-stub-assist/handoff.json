@@ -1,0 +1,17 @@
+{
+  "version": "handoff/v0",
+  "bug_id": "BUG-KMP-UI-001",
+  "symptom_layer": "UI",
+  "target": { "env": "device", "device": "Pixel 7 / API 34 emulator", "viewport": "1080x2400" },
+  "steps": [
+    "build and install the debug app on the emulator",
+    "open the Profile screen",
+    "rotate to landscape",
+    "observe the avatar row against its parent bounds"
+  ],
+  "assertion": {
+    "method": "computed-style",
+    "expected": "the avatar row stays within its parent bounds (no clipping/overflow) in both portrait and landscape"
+  },
+  "verified_by": null
+}

@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "kv-1", "prompt": "Verify the VAT fix: the failing shared test passes and the suite is green.", "expectedBehavior": "Re-runs :shared:test, asserts the failing test now passes + suite green (failing-test-passes).", "category": "verify-logic", "shouldTrigger": true },
+    { "id": "kv-2", "prompt": "We have no device wired but the Compose layout fix is in — verify the avatar-row bug.", "expectedBehavior": "Emits handoff/v0 with a UI LAYER_METHODS assertion, verified_by null; ledger stops at candidate (ASSIST).", "category": "verify-ui-assist", "shouldTrigger": true },
+    { "id": "kv-3", "prompt": "Verify the dependency fix by re-running the Gradle build / CI.", "expectedBehavior": "Re-runs ./gradlew build (pipeline-run/ci-run) and records the green build as evidence (System).", "category": "verify-system", "shouldTrigger": true },
+    { "id": "kv-4", "prompt": "Close the UI bug now — the diff looks correct.", "expectedBehavior": "Does not trigger a close — UI never closes on a diff; ASSIST emits handoff/v0 and stops at candidate.", "category": "must-not-close-on-diff", "shouldTrigger": false },
+    { "id": "kv-5", "prompt": "Write the failing test that reproduces the wrong total.", "expectedBehavior": "Does not trigger — that is kmp-reproduce, not verify.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

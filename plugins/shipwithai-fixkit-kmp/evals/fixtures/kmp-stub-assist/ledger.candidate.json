@@ -1,0 +1,14 @@
+{
+  "id": "BUG-KMP-UI-001",
+  "symptom_layer": "UI",
+  "state": "candidate",
+  "root_cause": "Compose Row in androidMain lacks a horizontalScroll/weight modifier; the avatar row overflows its parent in landscape",
+  "fix": "add Modifier.weight(1f) to the avatar row so it stays within parent bounds",
+  "hard_lock_violations": [],
+  "verification": {
+    "method": "computed-style",
+    "capability_tier": "ASSIST",
+    "evidence": "",
+    "verified_by": ""
+  }
+}

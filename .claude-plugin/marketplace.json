@@ -30,6 +30,18 @@
       "source": "./plugins/shipwithai-fixkit-web",
       "category": "productivity",
       "tags": ["bug-fix", "web", "adapter", "astro", "browser", "ui"]
+    },
+    {
+      "name": "shipwithai-fixkit-backend",
+      "description": "Thin backend adapter for the fixkit engine: maps ~~connectors to concrete backend tooling (npm/vitest/jest/pytest, CI pipelines, log/monitoring boundaries) and ships per-layer reproduce/verify/source-map recipes for runnable server stacks. Logic/System = FULL, UI = NONE. No debugging logic — that lives in core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "ShipWithAI",
+        "email": "support@shipwithai.com"
+      },
+      "source": "./plugins/shipwithai-fixkit-backend",
+      "category": "productivity",
+      "tags": ["bug-fix", "backend", "adapter", "logic", "system", "integration"]
     }
   ],
   "version": "0.1.0"

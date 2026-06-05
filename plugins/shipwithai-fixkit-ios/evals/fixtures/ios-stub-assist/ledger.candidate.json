@@ -1,0 +1,14 @@
+{
+  "id": "BUG-IOS-UI-001",
+  "symptom_layer": "UI",
+  "state": "candidate",
+  "root_cause": "the Order Detail title Text has lineLimit(1) with a fixed frame; at large Dynamic Type sizes the text truncates instead of wrapping",
+  "fix": "remove lineLimit(1) / allow multiline (lineLimit(nil)) and let the title grow vertically so it wraps at large Dynamic Type sizes",
+  "hard_lock_violations": [],
+  "verification": {
+    "method": "computed-style",
+    "capability_tier": "ASSIST",
+    "evidence": "",
+    "verified_by": ""
+  }
+}

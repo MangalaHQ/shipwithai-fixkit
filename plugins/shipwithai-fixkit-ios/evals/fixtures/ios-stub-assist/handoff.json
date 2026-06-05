@@ -1,0 +1,18 @@
+{
+  "version": "handoff/v0",
+  "bug_id": "BUG-IOS-UI-001",
+  "symptom_layer": "UI",
+  "target": { "env": "device", "device": "iPhone 16 / iOS 18", "viewport": "393x852" },
+  "steps": [
+    "build and run the app on the device/simulator",
+    "open the Order Detail screen",
+    "Settings > Accessibility > Display & Text Size > set Larger Text to the largest size",
+    "return to the Order Detail screen",
+    "observe the title label"
+  ],
+  "assertion": {
+    "method": "computed-style",
+    "expected": "the title label shows its full text (wraps to multiple lines, no truncation/ellipsis) at the largest Dynamic Type size"
+  },
+  "verified_by": null
+}

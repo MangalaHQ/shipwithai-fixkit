@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "ism-1", "prompt": "The tip total is wrong in a headless test — where does the bug live?", "expectedBehavior": "Routes to pure logic / view model (host-runnable reproducible) ⇒ Logic FULL.", "category": "map-logic", "shouldTrigger": true },
+    { "id": "ism-2", "prompt": "The Detail title truncates only on the rendered screen at large text — which layer?", "expectedBehavior": "Routes to the SwiftUI/UIKit + asset layer ⇒ UI ASSIST (handoff).", "category": "map-ui", "shouldTrigger": true },
+    { "id": "ism-3", "prompt": "The app fails to build resolving a Swift package — where do I look?", "expectedBehavior": "Routes to Package.swift / project.pbxproj / xcconfig ⇒ System FULL (host-observable).", "category": "map-system", "shouldTrigger": true },
+    { "id": "ism-4", "prompt": "Just go ahead and rewrite the view model to fix it.", "expectedBehavior": "Does not trigger — source-map locates + routes; it does not fix.", "category": "not-a-fixer", "shouldTrigger": false },
+    { "id": "ism-5", "prompt": "Emit the handoff/v0 for the truncation bug.", "expectedBehavior": "Does not trigger — that is ios-verify, not source-map.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "ir-1", "prompt": "Reproduce the wrong tip total — write the failing unit test first.", "expectedBehavior": "Writes a host-runnable unit test asserting the correct total; it fails against current code (the reproduction).", "category": "reproduce-logic", "shouldTrigger": true },
+    { "id": "ir-2", "prompt": "The app fails to build on a Swift package version conflict — reproduce it.", "expectedBehavior": "Runs xcodebuild build / SwiftPM resolution, reads the failing output as the System reproduction (host-observable).", "category": "reproduce-system", "shouldTrigger": true },
+    { "id": "ir-3", "prompt": "Users report the Detail title truncates at large Dynamic Type — reproduce the UI bug.", "expectedBehavior": "Builds + diagnoses at code level from the report/screenshot; does NOT claim to observe the render (ASSIST); defers observation to a handoff.", "category": "reproduce-ui-assist", "shouldTrigger": true },
+    { "id": "ir-4", "prompt": "Just confirm the fix is correct by reading the SwiftUI diff.", "expectedBehavior": "Does not trigger — a diff is not a reproduction; UI symptoms need an observed handoff, not a diff.", "category": "must-not-diff", "shouldTrigger": false },
+    { "id": "ir-5", "prompt": "Clear DerivedData and clean the build.", "expectedBehavior": "Does not trigger — that is ios-environment, not reproduce.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

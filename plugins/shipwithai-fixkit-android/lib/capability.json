@@ -1,0 +1,6 @@
+{
+  "UI": "ASSIST",
+  "Logic": "FULL",
+  "System": "FULL",
+  "note": "Logic FULL: app/business logic runs on the host JVM via ~~test-runner (./gradlew testDebugUnitTest — JUnit/Robolectric), observed pass/fail. System FULL: a Gradle build / dependency / config bug is run and OBSERVED from the host (./gradlew build, ~~ci) — proof methods pipeline-run / ci-run / integration-test. UI = ASSIST: Compose/View screens render on an emulator/device the agent cannot observe (no ~~browser, no device connector); the engine builds + diagnoses but emits handoff/v0 (core lib/handoff.schema.md), ceiling candidate, until a provider fills verified_by. Boundary: a Logic/System symptom that manifests ONLY at device runtime (unobservable from the host) is not a host bug — it routes to the UI/ASSIST lane."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "BUG-ANDROID-UI-001",
+  "symptom_layer": "UI",
+  "state": "candidate",
+  "root_cause": "the Orders LazyColumn has no contentPadding for the bottom navigation bar; its last item is overlapped by the bar, worse in landscape",
+  "fix": "add Modifier.padding/contentPadding equal to the bottom bar height (WindowInsets.navigationBars) so the last row clears the bar",
+  "hard_lock_violations": [],
+  "verification": {
+    "method": "computed-style",
+    "capability_tier": "ASSIST",
+    "evidence": "",
+    "verified_by": ""
+  }
+}

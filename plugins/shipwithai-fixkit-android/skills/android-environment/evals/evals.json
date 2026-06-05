@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "ae-1", "prompt": "Set up the Android build so I can run the shared unit tests.", "expectedBehavior": "Locates the Gradle wrapper + JDK and confirms testDebugUnitTest exists (host-JVM Logic loop).", "category": "setup", "shouldTrigger": true },
+    { "id": "ae-2", "prompt": "The Gradle daemon is stale and my test results look cached — clean it up.", "expectedBehavior": "Runs ./gradlew --stop + clean, reruns with --no-daemon so a red test is a real signal.", "category": "hygiene", "shouldTrigger": true },
+    { "id": "ae-3", "prompt": "Confirm the host-JVM unit-test task exists before we reproduce.", "expectedBehavior": "Greps ./gradlew tasks for testDebugUnitTest and confirms Logic FULL is honest.", "category": "verify-toolchain", "shouldTrigger": true },
+    { "id": "ae-4", "prompt": "Boot an emulator and watch the Compose screen render.", "expectedBehavior": "Does not trigger — the device runtime is unwired (UI = ASSIST); this skill never observes a render.", "category": "no-device", "shouldTrigger": false },
+    { "id": "ae-5", "prompt": "Write the failing unit test that reproduces the wrong total.", "expectedBehavior": "Does not trigger — that is android-reproduce, not environment.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

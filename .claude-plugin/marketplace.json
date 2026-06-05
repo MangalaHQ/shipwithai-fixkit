@@ -54,6 +54,30 @@
       "source": "./plugins/shipwithai-fixkit-kmp",
       "category": "productivity",
       "tags": ["bug-fix", "kmp", "kotlin-multiplatform", "adapter", "logic", "system", "assist"]
+    },
+    {
+      "name": "shipwithai-fixkit-android",
+      "description": "Thin Android adapter for the fixkit engine: maps ~~connectors to Gradle/JVM tooling (./gradlew testDebugUnitTest, GitHub Actions) and ships per-layer reproduce/verify/source-map recipes. App/business Logic + Gradle System = FULL; Compose/View UI = ASSIST (emits handoff/v0, ceiling candidate). No debugging logic — that lives in core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "ShipWithAI",
+        "email": "support@shipwithai.com"
+      },
+      "source": "./plugins/shipwithai-fixkit-android",
+      "category": "productivity",
+      "tags": ["bug-fix", "android", "adapter", "gradle", "compose", "logic", "system", "assist"]
+    },
+    {
+      "name": "shipwithai-fixkit-ios",
+      "description": "Thin iOS adapter for the fixkit engine: maps ~~connectors to Xcode/Swift tooling (xcodebuild test / swift test on a macOS host, GitHub Actions) and ships per-layer reproduce/verify/source-map recipes. Host-runnable Logic + build System = FULL (macOS precondition); SwiftUI/UIKit UI = ASSIST (emits handoff/v0, ceiling candidate). No debugging logic — that lives in core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "ShipWithAI",
+        "email": "support@shipwithai.com"
+      },
+      "source": "./plugins/shipwithai-fixkit-ios",
+      "category": "productivity",
+      "tags": ["bug-fix", "ios", "adapter", "xcode", "swift", "swiftui", "logic", "system", "assist"]
     }
   ],
   "version": "0.1.0"

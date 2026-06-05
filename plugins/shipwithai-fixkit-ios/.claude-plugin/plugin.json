@@ -1,0 +1,19 @@
+{
+  "name": "shipwithai-fixkit-ios",
+  "description": "Thin iOS adapter for the fixkit engine: maps the ~~connector placeholders to Xcode/Swift tooling and ships per-layer reproduce/verify/source-map recipes. Logic/System = FULL on a macOS host (swift test / xcodebuild test + build); UI = ASSIST (SwiftUI/UIKit — build + diagnose, verify via handoff/v0, ceiling candidate). No debugging logic — that lives in core.",
+  "version": "0.1.0",
+  "author": {
+    "name": "ShipWithAI",
+    "url": "https://shipwithai.io"
+  },
+  "homepage": "https://shipwithai.io/plugins/fixkit-ios",
+  "repository": "https://github.com/shipwithai/shipwithai-fixkit",
+  "license": "MIT",
+  "keywords": ["bug-fix", "ios", "adapter", "xcode", "swift", "swiftui", "logic", "system", "assist", "handoff", "reproduce", "verify", "source-map"],
+  "skills": [
+    "./skills/ios-environment",
+    "./skills/ios-reproduce",
+    "./skills/ios-verify",
+    "./skills/ios-source-map"
+  ]
+}

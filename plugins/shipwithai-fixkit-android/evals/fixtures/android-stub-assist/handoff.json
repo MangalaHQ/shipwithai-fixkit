@@ -1,0 +1,18 @@
+{
+  "version": "handoff/v0",
+  "bug_id": "BUG-ANDROID-UI-001",
+  "symptom_layer": "UI",
+  "target": { "env": "device", "device": "Pixel 8 / API 35 emulator", "viewport": "1080x2400" },
+  "steps": [
+    "build and install the debug APK on the emulator (./gradlew installDebug)",
+    "open the Orders screen",
+    "rotate to landscape",
+    "scroll to the last row in the list",
+    "observe the last row against the bottom navigation bar"
+  ],
+  "assertion": {
+    "method": "computed-style",
+    "expected": "the last list row is fully visible above the bottom navigation bar (not clipped/overlapped) in both portrait and landscape"
+  },
+  "verified_by": null
+}

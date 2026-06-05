@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "ar-1", "prompt": "Reproduce the wrong order total — write the failing unit test first.", "expectedBehavior": "Writes a host-JVM unit test asserting the correct total; it fails against current code (the reproduction).", "category": "reproduce-logic", "shouldTrigger": true },
+    { "id": "ar-2", "prompt": "The release build breaks on a dependency conflict — reproduce it.", "expectedBehavior": "Runs ./gradlew build, reads the failing output as the System reproduction (host-observable).", "category": "reproduce-system", "shouldTrigger": true },
+    { "id": "ar-3", "prompt": "Users report the last list row is hidden behind the bottom bar in landscape — reproduce the UI bug.", "expectedBehavior": "Builds + diagnoses at code level from the report/screenshot; does NOT claim to observe the render (ASSIST); defers observation to a handoff.", "category": "reproduce-ui-assist", "shouldTrigger": true },
+    { "id": "ar-4", "prompt": "Just confirm the fix is correct by reading the Compose diff.", "expectedBehavior": "Does not trigger — a diff is not a reproduction; UI symptoms need an observed handoff, not a diff.", "category": "must-not-diff", "shouldTrigger": false },
+    { "id": "ar-5", "prompt": "Kill the stale Gradle daemon and clean the build.", "expectedBehavior": "Does not trigger — that is android-environment, not reproduce.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

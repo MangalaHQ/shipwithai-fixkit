@@ -1,0 +1,37 @@
+{
+  "lastUpdated": 1780566043339,
+  "skills": [
+    {
+      "skillId": "ios-environment",
+      "name": "ios-environment",
+      "description": "Locate the .xcodeproj/scheme or Package.swift on a macOS host and enforce build hygiene: confirm the unit-test action exists, clear stale DerivedData, clean state. Triggers: 'set up the iOS build', 'clear DerivedData'.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "ios-reproduce",
+      "name": "ios-reproduce",
+      "description": "iOS reproduce recipes: Logic = a failing host-runnable unit test (swift test / xcodebuild test), written first; UI (ASSIST) = build + code-level diagnosis only, never observed on a device. Internal: engine reproduce step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "ios-verify",
+      "name": "ios-verify",
+      "description": "iOS verify recipes mirroring reproduce: Logic = failing test passes + suite green; UI (ASSIST) = emit handoff/v0 with a UI LAYER_METHODS proof, ledger stops at candidate. Internal: engine verify step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "ios-source-map",
+      "name": "ios-source-map",
+      "description": "Symptom -> file hints on an iOS tree: SwiftUI view / UIViewController vs ObservableObject/ViewModel vs storyboard/asset vs logic; crash log -> source. Generic level only. Internal: engine isolate step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
+    }
+  ]
+}

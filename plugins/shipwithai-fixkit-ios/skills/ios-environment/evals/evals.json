@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "ie-1", "prompt": "Set up the iOS build so I can run the unit tests on this Mac.", "expectedBehavior": "Locates Package.swift or the .xcodeproj/scheme and confirms a host-runnable test action exists (Logic loop).", "category": "setup", "shouldTrigger": true },
+    { "id": "ie-2", "prompt": "My test results look cached — clear DerivedData and clean the build.", "expectedBehavior": "Removes stale DerivedData / runs xcodebuild clean or swift package clean so a red test is a real signal.", "category": "hygiene", "shouldTrigger": true },
+    { "id": "ie-3", "prompt": "Confirm swift test can run before we reproduce.", "expectedBehavior": "Runs swift test --list-tests (or checks the scheme Test action) and confirms Logic FULL is honest on this macOS host.", "category": "verify-toolchain", "shouldTrigger": true },
+    { "id": "ie-4", "prompt": "Boot a simulator and watch the SwiftUI screen render.", "expectedBehavior": "Does not trigger — the device runtime is unwired (UI = ASSIST); this skill never observes a render.", "category": "no-device", "shouldTrigger": false },
+    { "id": "ie-5", "prompt": "Write the failing test that reproduces the wrong total.", "expectedBehavior": "Does not trigger — that is ios-reproduce, not environment.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

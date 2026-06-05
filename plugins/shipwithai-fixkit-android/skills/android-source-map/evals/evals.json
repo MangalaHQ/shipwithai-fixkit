@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "asm-1", "prompt": "The order total is wrong in a headless test — where does the bug live?", "expectedBehavior": "Routes to pure logic / ViewModel (host-JVM reproducible) ⇒ Logic FULL.", "category": "map-logic", "shouldTrigger": true },
+    { "id": "asm-2", "prompt": "The avatar row clips only on the rendered Profile screen — which layer?", "expectedBehavior": "Routes to the Compose/View + resource layer ⇒ UI ASSIST (handoff).", "category": "map-ui", "shouldTrigger": true },
+    { "id": "asm-3", "prompt": "The release build fails resolving a library version — where do I look?", "expectedBehavior": "Routes to build.gradle / libs.versions.toml / manifest ⇒ System FULL (host-observable).", "category": "map-system", "shouldTrigger": true },
+    { "id": "asm-4", "prompt": "Just go ahead and rewrite the ViewModel to fix it.", "expectedBehavior": "Does not trigger — source-map locates + routes; it does not fix.", "category": "not-a-fixer", "shouldTrigger": false },
+    { "id": "asm-5", "prompt": "Emit the handoff/v0 for the layout bug.", "expectedBehavior": "Does not trigger — that is android-verify, not source-map.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

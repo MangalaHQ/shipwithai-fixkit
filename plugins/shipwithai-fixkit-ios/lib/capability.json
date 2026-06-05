@@ -1,0 +1,6 @@
+{
+  "UI": "ASSIST",
+  "Logic": "FULL",
+  "System": "FULL",
+  "note": "Host precondition: macOS + Xcode/Swift toolchain. Logic FULL: app/business logic runs + reports pass/fail on the macOS host via ~~test-runner (swift test for SwiftPM, or the unit/logic bundles of xcodebuild test) — the agent observes the test RESULT, not a rendered screen. System FULL: a build / dependency / config bug is run and OBSERVED from the host (xcodebuild build, SwiftPM resolution, ~~ci) — proof methods pipeline-run / ci-run / integration-test. UI = ASSIST: SwiftUI/UIKit screens render on a simulator/device the agent cannot observe (no ~~browser, no device connector); the engine builds + diagnoses but emits handoff/v0 (core lib/handoff.schema.md), ceiling candidate, until a provider fills verified_by. Boundary: a simulator/device-only render symptom (or an XCUITest UI assertion) is not a host bug — it routes to the UI/ASSIST lane. Asymmetry with Android is a host requirement (macOS), not a tier downgrade."
+}

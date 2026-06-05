@@ -1,0 +1,37 @@
+{
+  "lastUpdated": 1780566043339,
+  "skills": [
+    {
+      "skillId": "android-environment",
+      "name": "android-environment",
+      "description": "Locate the Gradle wrapper + JDK and enforce build hygiene: confirm the debug unit-test task exists, kill stale Gradle daemons, --no-daemon clean state. Triggers: 'set up the Android build', 'kill the stale Gradle daemon'.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "android-reproduce",
+      "name": "android-reproduce",
+      "description": "Android reproduce recipes: Logic = a failing host-JVM unit test (testDebugUnitTest), written first; UI (ASSIST) = build + code-level diagnosis only, never observed on a device. Internal: engine reproduce step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "android-verify",
+      "name": "android-verify",
+      "description": "Android verify recipes mirroring reproduce: Logic = failing test passes + suite green; UI (ASSIST) = emit handoff/v0 with a UI LAYER_METHODS proof, ledger stops at candidate. Internal: engine verify step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "android-source-map",
+      "name": "android-source-map",
+      "description": "Symptom -> file hints on an Android tree: Activity/Fragment/Compose tree vs ViewModel vs resource/layout vs logic; logcat -> source. Generic level only. Internal: engine isolate step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
+    }
+  ]
+}

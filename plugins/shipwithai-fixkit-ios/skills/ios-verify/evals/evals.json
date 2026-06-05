@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "iv-1", "prompt": "Verify the tip fix: the failing unit test passes and the suite is green.", "expectedBehavior": "Re-runs swift test, asserts the failing test now passes + suite green (failing-test-passes).", "category": "verify-logic", "shouldTrigger": true },
+    { "id": "iv-2", "prompt": "No device wired but the SwiftUI Dynamic Type fix is in — verify the title truncation bug.", "expectedBehavior": "Emits handoff/v0 with a UI computed-style assertion, verified_by null; ledger stops at candidate (ASSIST).", "category": "verify-ui-assist", "shouldTrigger": true },
+    { "id": "iv-3", "prompt": "Verify the package fix by re-running the Xcode build / CI.", "expectedBehavior": "Re-runs xcodebuild build (pipeline-run/ci-run) and records the green build as evidence (System).", "category": "verify-system", "shouldTrigger": true },
+    { "id": "iv-4", "prompt": "Close the UI bug now — the SwiftUI diff looks correct.", "expectedBehavior": "Does not trigger a close — UI never closes on a diff; ASSIST emits handoff/v0 and stops at candidate.", "category": "must-not-close-on-diff", "shouldTrigger": false },
+    { "id": "iv-5", "prompt": "Write the failing test that reproduces the wrong total.", "expectedBehavior": "Does not trigger — that is ios-reproduce, not verify.", "category": "wrong-step", "shouldTrigger": false }
+  ]
+}

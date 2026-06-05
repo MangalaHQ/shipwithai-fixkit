@@ -198,6 +198,49 @@ section('6d. handoff/v0 format + layer-proof binding');
   assert(!noSlot.ok && noSlot.violations.some((x) => x.code === 'HANDOFF_NO_VERIFIED_BY_SLOT'), 'handoff missing the verified_by slot is REJECTED', JSON.stringify(noSlot.violations));
 }
 
+// 6e. PATTERN MINER (recurring-pattern discovery; loud failure; mutation) ---
+section('6e. Pattern miner — structural scope-token clustering');
+{
+  const { mineDir, mineLedgers } = require('../lib/pattern-miner');
+  const PATTERN_DIR = path.join(ROOT, 'evals', 'fixtures', 'pattern', 'cluster');
+  const MALFORMED_DIR = path.join(ROOT, 'evals', 'fixtures', 'pattern', 'malformed');
+
+  // (1) a recurring pair surfaces at threshold 2; the unique-signature noise and the
+  //     no-scope-token negative control stay OUT (one fixture set, three assertions).
+  const r2 = mineDir(PATTERN_DIR, { threshold: 2 });
+  assert(r2.candidates.length === 1, 'one candidate pattern at threshold 2', `got ${r2.candidates.length}`);
+  const cand = r2.candidates[0] || { bug_ids: [], shared_scope_tokens: [] };
+  assert(cand.bug_ids.join(',') === 'BUG-9001,BUG-9002', 'candidate = the recurring pair', cand.bug_ids.join(','));
+  assert(cand.shared_scope_tokens.includes('@acme/widgets'), 'cluster is bound by the shared scope token', JSON.stringify(cand.shared_scope_tokens));
+  const surfaced = new Set(r2.candidates.flatMap((c) => c.bug_ids));
+  assert(!surfaced.has('BUG-9003'), 'sub-threshold unique-signature noise does NOT surface');
+  assert(!surfaced.has('BUG-9004'), 'negative control (no scope token) does NOT cluster');
+
+  // (2) malformed ledger fails LOUDLY (throws) — never a silent skip (the PR #3 lesson).
+  let threw = false;
+  try { mineDir(MALFORMED_DIR, { threshold: 2 }); } catch (e) { threw = /malformed ledger/.test(e.message); }
+  assert(threw, 'a malformed ledger throws (loud failure, not a silent skip)');
+
+  // (3) MUTATION — raise the threshold to 3: the pair-of-2 must STOP surfacing (the test bites).
+  const r3 = mineDir(PATTERN_DIR, { threshold: 3 });
+  assert(r3.candidates.length === 0, 'mutation: threshold 3 drops the pair-of-2 (gate bites)', `got ${r3.candidates.length}`);
+
+  // (4) MUTATION — the structural scope token is load-bearing: strip it from one member and the
+  //     cluster dissolves (proves matching is not happening on salient tokens alone).
+  const pair = [
+    { id: 'X1', symptom_layer: 'UI', root_cause: 'the @acme/widgets Carousel organism mis-times its slide padding' },
+    { id: 'X2', symptom_layer: 'UI', root_cause: 'the @acme/widgets Carousel organism stacks slide padding' },
+  ];
+  assert(mineLedgers(pair, { threshold: 2 }).candidates.length === 1, 'control: scoped pair clusters');
+  const stripped = [pair[0], { id: 'X2', symptom_layer: 'UI', root_cause: 'the carousel organism stacks slide padding (no package ref, no backtick)' }];
+  assert(mineLedgers(stripped, { threshold: 2 }).candidates.length === 0, 'mutation: removing the scope token dissolves the cluster');
+
+  // (5) the optional curated boost is INERT by default (core must pass with the boost absent) and
+  //     only re-ranks when supplied — it never changes membership.
+  const withBoost = mineLedgers(pair, { threshold: 2, boostVocabulary: ['carousel'] });
+  assert(withBoost.candidates.length === 1, 'boost does not change cluster membership (re-rank only)');
+}
+
 // 7. CONVENTION + EVAL-SCHEMA LINTERS (BLOCKING) ----------------------------
 section('7. Convention + eval-schema linters');
 function walkSkillFiles() {

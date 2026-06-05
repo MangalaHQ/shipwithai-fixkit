@@ -23,8 +23,9 @@ layer-agent, and walks the bug through `reproduce → diagnose → fix → verif
 These are enforced by `lib/ledger-validator.js`, exercised deterministically by `tests/run-all.js`.
 
 ## Components
-`commands/fix.md` (orchestrator) · `skills/{triage,spine,verification,regression-guard}` ·
-`agents/{ui,logic,system}-bug-agent.md` · `lib/ledger.schema.md` + `lib/ledger-validator.js` ·
+`commands/fix.md` (orchestrator) · `skills/{triage,spine,verification,regression-guard,pattern-mining}` ·
+`agents/{ui,logic,system}-bug-agent.md` + `agents/pattern-learning.md` (read-only ledger-history miner) ·
+`lib/ledger.schema.md` + `lib/ledger-validator.js` + `lib/pattern-miner.js` + `lib/frontmatter.js` ·
 `CONNECTORS.md` · `evals/` (prompts + fixtures).
 
 ## Develop

@@ -1,5 +1,30 @@
 # Changelog — shipwithai-fixkit-core
 
+## [0.3.0] — 2026-06-05
+
+### Added
+- **Pattern-learning capability** (read-only ledger history mining — the deal-debrief/playbook-monitor
+  idiom): `agents/pattern-learning.md` (flat `.md`, read-only tools, never writes a ledger), a
+  `user-invocable:false` `skills/pattern-mining/` sub-skill (mine → rank → propose; proposals cite
+  source bug IDs), and a zero-dep `lib/pattern-miner.js`.
+- **`lib/pattern-miner.js`** — clusters ledgers by a **structural scope token** (a `@scope/package`
+  reference or a backtick-quoted identifier) **plus** ≥1 additional shared salient token (K=2,
+  injectable), at a tunable frequency threshold (default 2). No curated domain vocabulary in core
+  (the optional re-ranking boost's values live in the org pack config profile). Fails **loudly** on a
+  malformed ledger (the PR #3 lesson); union-find clustering; ranked candidate report (+ CLI).
+- **Parser promotion:** `lib/frontmatter.js` is now the canonical parser (reused by the miner);
+  `tests/lib/frontmatter.js` is a re-export shim so the gate's require + parser unit tests are
+  unchanged (behavior-preserving — gate stayed green across the move).
+- **Gate section 6e (pattern miner)** in `tests/run-all.js` (96 checks, was 78): a recurring pair
+  surfaces at threshold; sub-threshold noise and a no-scope-token negative control stay out; a
+  malformed ledger throws; two mutation checks bite (threshold 2→3 drops the pair; stripping the
+  scope token dissolves the cluster).
+
+### Notes
+- Additive + read-only: **no** change to any state-machine guard (`lib/ledger-validator.js`,
+  `lib/handoff-validator.js`). The miner only reads ledgers; it never mutates the append-only history.
+- Minor bump (new capability). 4-key version sync updated.
+
 ## [0.2.0] — 2026-06-04
 
 ### Added

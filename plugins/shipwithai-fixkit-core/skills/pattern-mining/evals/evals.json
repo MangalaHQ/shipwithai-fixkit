@@ -1,0 +1,41 @@
+{
+  "skillId": "pattern-mining",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "mine-01",
+      "prompt": "We have a dozen closed bugs in .fixkit/. Are any of them the same recurring root cause?",
+      "expectedBehavior": "Run the miner over the .fixkit/ dir, cluster by structural scope token + shared salient tokens, and report candidate patterns ranked, each citing its source bug IDs.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "mine-02",
+      "prompt": "Can you turn the repeating design-system bugs in our ledger history into a playbook entry proposal?",
+      "expectedBehavior": "Mine the ledgers, surface the recurring cluster, and emit a human-reviewed playbook PROPOSAL citing the source bug IDs — without writing to any ledger or auto-applying it.",
+      "category": "propose",
+      "shouldTrigger": true
+    },
+    {
+      "id": "mine-03",
+      "prompt": "Our org pack sets a frequency threshold of 3 — re-run the pattern mining with that.",
+      "expectedBehavior": "Read the threshold from the pack config profile (pattern_mining.frequency_threshold) and pass --threshold 3 to the miner; core default is 2 when no pack is present.",
+      "category": "tunable-threshold",
+      "shouldTrigger": true
+    },
+    {
+      "id": "mine-04",
+      "prompt": "Fix this failing CSS overflow bug on the blog post.",
+      "expectedBehavior": "Do NOT trigger pattern-mining — this is a single live bug fix (triage + spine + verification), not mining accumulated history.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "mine-05",
+      "prompt": "Append a new verified entry to BUG-005 in the ledger.",
+      "expectedBehavior": "Do NOT trigger pattern-mining — it is read-only and never writes a ledger; ledger writes are the orchestrator's job.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

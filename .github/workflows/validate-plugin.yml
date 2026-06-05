@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'plugins/**'
+      - '.github/workflows/validate-plugin.yml'   # self-trigger so workflow changes are validated
+  workflow_dispatch: {}                            # manual run: validates ALL plugins (every gate)
 
 jobs:
   detect-changed-plugins:
@@ -12,16 +14,35 @@ jobs:
       plugins: ${{ steps.changes.outputs.plugins }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history so the PR base commit is resolvable (see below)
 
       - id: changes
         name: Detect changed plugins
         run: |
-          # Get list of changed plugin directories
-          PLUGINS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep '^plugins/' \
-            | cut -d'/' -f2 \
-            | sort -u \
-            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual run: validate EVERY plugin directory (all four gates).
+            PLUGINS="$(ls -1 plugins | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+          else
+            # PR run: diff against the event-provided base SHA. With fetch-depth: 0 it is present
+            # locally. (The previous `origin/${{ github.base_ref }}` was unresolvable under a shallow
+            # clone, so the diff errored and silently produced an empty list — every gate was skipped.)
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            # Fail LOUDLY if the base commit is missing — a git error is NOT "no plugins changed".
+            if ! git rev-parse --verify --quiet "${BASE_SHA}^{commit}" >/dev/null; then
+              echo "::error::base commit ${BASE_SHA} not available — checkout needs fetch-depth: 0"
+              exit 1
+            fi
+            # The diff itself must succeed (set -e aborts on git failure). Only the plugin-path
+            # filter may legitimately be empty (a genuine non-plugin PR), so its no-match is tolerated.
+            CHANGED="$(git diff --name-only "${BASE_SHA}...HEAD")"
+            PLUGINS="$(printf '%s\n' "${CHANGED}" \
+              | { grep '^plugins/' || true; } \
+              | cut -d'/' -f2 \
+              | sort -u \
+              | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+          fi
           echo "plugins=${PLUGINS}" >> "$GITHUB_OUTPUT"
           echo "Changed plugins: ${PLUGINS}"
 

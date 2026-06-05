@@ -10,7 +10,7 @@
     {
       "name": "shipwithai-fixkit-core",
       "description": "Stack-agnostic, layer-aware bug-fix engine. Classify by symptom layer, debug on a vendored systematic-debugging spine, close only on layer-appropriate proof.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "ShipWithAI",
         "email": "support@shipwithai.com"
@@ -20,5 +20,5 @@
       "tags": ["bug-fix", "debugging", "root-cause", "triage", "verification", "regression-guard"]
     }
   ],
-  "version": "0.2.0"
+  "version": "0.3.0"
 }

@@ -32,6 +32,14 @@
       "creatorType": "community",
       "updatedAt": "2026-06-03T00:00:00Z",
       "enabled": true
+    },
+    {
+      "skillId": "pattern-mining",
+      "name": "pattern-mining",
+      "description": "Mine the append-only .fixkit/ ledger history for recurring root-cause patterns (structural scope-token clustering); propose human-reviewed playbook entries citing source bug IDs. Read-only.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-05T00:00:00Z",
+      "enabled": true
     }
   ]
 }

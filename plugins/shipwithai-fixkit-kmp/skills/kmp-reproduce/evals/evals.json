@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "kr-1", "prompt": "Reproduce the wrong VAT total in the shared module with a failing test.", "expectedBehavior": "Writes the smallest failing commonMain JVM test — the failing run is the reproduction (Logic FULL).", "category": "reproduce-logic", "shouldTrigger": true },
+    { "id": "kr-2", "prompt": "The avatar row clips in landscape on Android; reproduce it.", "expectedBehavior": "Builds + diagnoses from the report/code without claiming to observe the render (UI ASSIST).", "category": "reproduce-ui-assist", "shouldTrigger": true },
+    { "id": "kr-3", "prompt": "The Gradle build fails resolving a dependency; reproduce the failure.", "expectedBehavior": "Runs ./gradlew build and reads the build output as the reproduction (System).", "category": "reproduce-system", "shouldTrigger": true },
+    { "id": "kr-4", "prompt": "Confirm the previously-failing test now passes and the suite is green.", "expectedBehavior": "Does not trigger — that is kmp-verify, not reproduce.", "category": "wrong-step", "shouldTrigger": false },
+    { "id": "kr-5", "prompt": "I observed the running SwiftUI screen and the bug is gone — close it.", "expectedBehavior": "Does not trigger — the agent cannot observe the device UI; this is an ASSIST handoff, not a reproduce/close.", "category": "off-domain", "shouldTrigger": false }
+  ]
+}

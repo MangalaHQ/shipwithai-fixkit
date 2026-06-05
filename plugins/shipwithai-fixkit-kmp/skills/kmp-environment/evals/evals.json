@@ -1,0 +1,9 @@
+{
+  "evals": [
+    { "id": "ke-1", "prompt": "Set up the KMP build so I can run the shared module's JVM tests.", "expectedBehavior": "Locates the Gradle wrapper + JDK and confirms the :shared:test task resolves.", "category": "environment", "shouldTrigger": true },
+    { "id": "ke-2", "prompt": "A stale Gradle daemon is serving a cached classpath; reset it before we reproduce.", "expectedBehavior": "Applies build hygiene: ./gradlew --stop + clean state before reproduce.", "category": "environment", "shouldTrigger": true },
+    { "id": "ke-3", "prompt": "Confirm a compatible JDK is on JAVA_HOME for this KMP project.", "expectedBehavior": "Verifies the JVM toolchain so a mismatch can't fake a build failure.", "category": "environment", "shouldTrigger": true },
+    { "id": "ke-4", "prompt": "Write the failing commonTest that captures the wrong VAT total.", "expectedBehavior": "Does not trigger — that is kmp-reproduce, not environment.", "category": "wrong-step", "shouldTrigger": false },
+    { "id": "ke-5", "prompt": "Spin up the iOS simulator and watch the Profile screen render.", "expectedBehavior": "Does not trigger — no device runtime here; the platform UI is unobservable (ASSIST).", "category": "off-domain", "shouldTrigger": false }
+  ]
+}

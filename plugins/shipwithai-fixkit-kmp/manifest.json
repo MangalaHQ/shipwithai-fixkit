@@ -1,0 +1,37 @@
+{
+  "lastUpdated": 1780566043339,
+  "skills": [
+    {
+      "skillId": "kmp-environment",
+      "name": "kmp-environment",
+      "description": "Locate the Gradle wrapper + JVM and enforce build hygiene: confirm the shared module's test task exists, kill stale daemons, --no-daemon clean state. Triggers: 'set up the KMP build', 'kill the stale Gradle daemon'.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-04T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "kmp-reproduce",
+      "name": "kmp-reproduce",
+      "description": "KMP reproduce recipes: Logic = a failing JVM test in the shared module, written first; UI (ASSIST) = build + code-level diagnosis only, never observed. Internal: engine reproduce step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-04T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "kmp-verify",
+      "name": "kmp-verify",
+      "description": "KMP verify recipes mirroring reproduce: Logic = failing test passes + suite green; UI (ASSIST) = emit handoff/v0 with a UI LAYER_METHODS proof, ledger stops at candidate. Internal: engine verify step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-04T00:00:00Z",
+      "enabled": true
+    },
+    {
+      "skillId": "kmp-source-map",
+      "name": "kmp-source-map",
+      "description": "Symptom -> file hints on a KMP tree: commonMain (shared) vs androidMain/iosMain + Compose/SwiftUI; expect/actual seams; wrong on both platforms => shared, one platform => platform. Internal: engine isolate step.",
+      "creatorType": "community",
+      "updatedAt": "2026-06-04T00:00:00Z",
+      "enabled": true
+    }
+  ]
+}

@@ -58,7 +58,11 @@ function tokenize(rootCause) {
   BACKTICK_RE.lastIndex = 0;
   while ((m = BACKTICK_RE.exec(text)) !== null) {
     const id = norm(m[1]);
-    if (id) scope.add(id);
+    if (!id) continue;
+    // Ignore a quoted span that is only filler/stopwords (e.g. `the and`) — not an identifier;
+    // it must carry at least one meaningful (non-stopword, length>=2) word to count as a scope token.
+    const meaningful = id.split(/[^a-z0-9]+/).some((w) => w.length >= 2 && !STOPWORDS.has(w));
+    if (meaningful) scope.add(id);
   }
   stripped = stripped.replace(BACKTICK_RE, ' ');
 
@@ -136,7 +140,11 @@ function mineLedgers(ledgers, options) {
 
   const candidates = [];
   for (const members of groups.values()) {
-    if (members.length < threshold) continue;
+    // Frequency counts DISTINCT bug ids, not member files: an append-only `.fixkit/` can carry a
+    // second file for a re-opened/superseded id, and a duplicated id must never inflate a pattern
+    // (that would manufacture frequency the corpus does not have — the honesty clause).
+    const bugIds = [...new Set(members.map((n) => n.id))].sort();
+    if (bugIds.length < threshold) continue;
     // What binds ALL members (intersection across the whole cluster) — for the report.
     let scopeI = new Set(members[0].scope);
     let salientI = new Set(members[0].salient);
@@ -146,14 +154,13 @@ function mineLedgers(ledgers, options) {
     }
     const sharedScope = [...scopeI].sort();
     const sharedSalient = [...salientI].sort();
-    const bugIds = members.map((n) => n.id).sort();
     const facets = sharedFacets(members.map((n) => n.ledger));
     // Salience score = shared token count, with the optional boost adding weight (re-rank only).
     const boostHits = [...scopeI, ...salientI].filter((t) => boost.has(t)).length;
     const score = sharedScope.length * 2 + sharedSalient.length + boostHits * 3;
     candidates.push({
       bug_ids: bugIds,
-      count: members.length,
+      count: bugIds.length,
       shared_scope_tokens: sharedScope,
       shared_salient_tokens: sharedSalient,
       shared_facets: facets,

@@ -15,10 +15,11 @@
 - **Parser promotion:** `lib/frontmatter.js` is now the canonical parser (reused by the miner);
   `tests/lib/frontmatter.js` is a re-export shim so the gate's require + parser unit tests are
   unchanged (behavior-preserving — gate stayed green across the move).
-- **Gate section 6e (pattern miner)** in `tests/run-all.js` (96 checks, was 78): a recurring pair
+- **Gate section 6e (pattern miner)** in `tests/run-all.js` (99 checks, was 78): a recurring pair
   surfaces at threshold; sub-threshold noise and a no-scope-token negative control stay out; a
-  malformed ledger throws; two mutation checks bite (threshold 2→3 drops the pair; stripping the
-  scope token dissolves the cluster).
+  malformed ledger throws; mutation checks bite (threshold 2→3 drops the pair; stripping the scope
+  token dissolves the cluster); frequency counts **distinct bug ids** (a duplicated/superseded id
+  cannot inflate a pattern); the optional boost re-ranks but never changes membership.
 
 ### Notes
 - Additive + read-only: **no** change to any state-machine guard (`lib/ledger-validator.js`,

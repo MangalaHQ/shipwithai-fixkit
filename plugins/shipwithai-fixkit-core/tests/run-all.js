@@ -236,9 +236,25 @@ section('6e. Pattern miner — structural scope-token clustering');
   assert(mineLedgers(stripped, { threshold: 2 }).candidates.length === 0, 'mutation: removing the scope token dissolves the cluster');
 
   // (5) the optional curated boost is INERT by default (core must pass with the boost absent) and
-  //     only re-ranks when supplied — it never changes membership.
+  //     only re-ranks when supplied — it never changes membership but DOES change the score.
+  const noBoost = mineLedgers(pair, { threshold: 2 });
   const withBoost = mineLedgers(pair, { threshold: 2, boostVocabulary: ['carousel'] });
   assert(withBoost.candidates.length === 1, 'boost does not change cluster membership (re-rank only)');
+  assert(withBoost.candidates[0].score > noBoost.candidates[0].score, 'boost re-ranks: a boosted shared token raises the candidate score');
+
+  // (6) FREQUENCY COUNTS DISTINCT BUG IDS, not member files — a duplicated/superseded id must not
+  //     inflate a pattern (the honesty clause). Three files, two distinct ids, at threshold 3 -> none.
+  const dupIds = [
+    { id: 'DUP-1', symptom_layer: 'UI', root_cause: 'the @acme/widgets Carousel organism stacks slide padding' },
+    { id: 'DUP-1', symptom_layer: 'UI', root_cause: 'the @acme/widgets Carousel organism stacks slide padding (reopened)' },
+    { id: 'DUP-2', symptom_layer: 'UI', root_cause: 'the @acme/widgets Carousel organism mis-times its slide' },
+  ];
+  const dupR = mineLedgers(dupIds, { threshold: 3 });
+  assert(dupR.candidates.length === 0, 'distinct-id: 3 files / 2 distinct ids does NOT meet threshold 3');
+  const dupR2 = mineLedgers(dupIds, { threshold: 2 });
+  assert(dupR2.candidates.length === 1 && dupR2.candidates[0].count === 2 &&
+    dupR2.candidates[0].bug_ids.join(',') === 'DUP-1,DUP-2',
+    'distinct-id: count + cited bug_ids are deduped to the 2 distinct ids', JSON.stringify(dupR2.candidates[0] && dupR2.candidates[0].bug_ids));
 }
 
 // 7. CONVENTION + EVAL-SCHEMA LINTERS (BLOCKING) ----------------------------

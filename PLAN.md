@@ -1,284 +1,307 @@
-# PLAN.md — Phase 5: distribution + pattern-learning agent
+# PLAN.md — FE fix harness MVP (`~~browser` Playwright binding)
 
-> **Status:** awaiting Ethan's approval (ADR-0002 — PLAN first, then autonomous to PR).
-> **Author:** Claude Code. **Approver:** Ethan. **Spans BOTH repos** (engine + focus) + reads one
-> real data dir (`shipwithai.io/.fixkit/`, **read-only**).
-> **The point of this phase:** ship the family (engine public/MIT, focus private, cross-repo install
-> proven) **and** close the loop on history — a read-only agent that mines the append-only `.fixkit/`
-> ledgers (dedupe + frequency threshold, the playbook-monitor idiom) and **proposes** recurring-bug
-> playbook entries (a human reviews; the agent never writes a ledger and never auto-applies).
-> **Branches:** engine `phase-5/distribution-pattern-learning` off `main` @ `1e0b38d` (post-PR #5,
-> six plugins live); focus `phase-5/distribution` off `master` @ `4f866d2`.
-> **New capability is additive + read-only:** zero edits to any guard (`lib/ledger-validator.js`,
-> `lib/handoff-validator.js`); the miner only *reads* ledgers. Core bumps **minor** (0.2.0 → 0.3.0).
+> **Branch:** `phase-1/web-harness` off `main` · **Approver:** Ethan · **Status:** awaiting plan-in (ADR-0002 HALT).
+> **Author:** Claude Code (consensus: Planner → Architect → Critic). Supersedes the P4 plan (preserved in git history).
+> **Goal:** make `/shipwithai-fixkit-core:fix` close front-end **UI** bugs *autonomously* by giving the
+> engine a real, in-loop `~~browser` connector — a headless **Playwright** runner — so CC can
+> REPRODUCE and VERIFY UI bugs itself and the ledger reaches `closed` at UI `capability_tier: FULL`
+> with no human in the inner loop.
+
+This plan adds **one new plugin + one connector inversion**. The engine and the web adapter already
+exist; this build inverts the `~~browser` binding from "human-driven Chrome" to "in-loop Playwright."
 
 ---
 
-## 0. Context established (evidence, not assumptions)
+## 1. Ground truth (verified this session — the plan rests on these, not on assumption)
 
-Read on-demand per the handoff's token budget; findings that shape the design:
-
-- **Ledger data shape** (`lib/ledger.schema.md` + the 4 real ledgers): frontmatter carries
-  `id, symptom_layer, subtype, severity, state, root_cause, root_cause_layer, fix,
-  verification{…}, guard`. The body is narrative; **frontmatter is the machine-checked truth**.
-- **The real corpus is 4 ledgers, not 5** — `shipwithai.io/.fixkit/` holds **BUG-001, 003, 004, 005**
-  (there is no BUG-002). This matters for the gate-run threshold maths (§7).
-- **The recurring pattern is real and has a built-in negative control:**
-  | Bug | symptom/subtype | `root_cause_layer` | design-organism? |
-  |---|---|---|---|
-  | BUG-001 | UI / layout-spacing | **upstream** | **yes** — `@shipwithai/design` ArticleHero organism |
-  | BUG-003 | UI / layout-overflow | UI | **no** — explicitly "a consumer component, **not** a design organism" |
-  | BUG-004 | UI / interaction-client-runtime | UI | **yes** — `@shipwithai/design` ReactionsBar organism (consumer never wired) |
-  | BUG-005 | UI / interaction-contract | UI | **yes** — `@shipwithai/design` ReactionsBar organism (first-`<article>` assumption) |
-
-  → A **design-organism assumption cluster of 3** (001, 004, 005) surfaces at threshold 2, and
-  **BUG-003 is the negative control that must stay out** (consumer-local root cause). Crucially,
-  these three do **not** share `root_cause_layer` (upstream vs UI) **nor** `subtype` — so a naive
-  `root_cause_layer + subtype` key would *split* them. **The binding signal is normalized
-  root-cause tokens** (`@shipwithai/design`, "organism"). This dictates the matching-key design (§2).
-- **The parser to reuse exists but lives under `tests/`:** `tests/lib/frontmatter.js`
-  (`parseFrontmatter`, `parseScalar`) — a zero-dep YAML-subset parser. `lib/ledger-validator.js`
-  has **no** parser (it audits already-parsed objects). A core `lib/pattern-miner.js` must not
-  depend on `tests/`; the parser is promoted to `lib/` (§2, with a re-export shim to keep the
-  gate's require untouched).
-- **The gate auto-discovers + lints** every `skills/<s>/SKILL.md` (<200 lines, inline ≤20,
-  ends `## What this … does NOT do`, description <200) and requires `skills/<s>/evals/evals.json`
-  with **≥5 evals (≥3 trigger / ≥2 must-not, `shouldTrigger` boolean)**; agents are checked for the
-  `## What this agent does NOT do` h2. The new sub-skill + agent inherit all of this automatically.
-- **Public-readiness — headline finding:** **there is NO `LICENSE` file anywhere in the engine**
-  (root or per-plugin) — only `NOTICE` (which correctly carries the vendored-spine attribution:
-  superpowers:systematic-debugging, MIT © 2025 Jesse Vincent, + the engine's own
-  "Copyright (c) 2026 ShipWithAI"). README/CLAUDE.md both declare MIT. **The audit's item #1 fails
-  today** → remediation = add a root MIT `LICENSE` (2026 ShipWithAI). This is a docs/licensing
-  change (no code behavior), within the audit's remediation lane.
-- **Focus CI has the exact PR #3 silent-skip bug:** focus `.github/workflows/validate-plugin.yml`
-  uses `git diff --name-only origin/${{ github.base_ref }}...HEAD` with **no `fetch-depth: 0`** and
-  **no fail-loud** — identical to the bug PR #3 fixed in the engine. Port the engine's fixed version.
-- **Focus pin is stale (P2-era):** focus root `marketplace.json` pins engine **core@0.2.0 + web@0.1.0
-  by sha `2f8e0e8`** (P2). It lists only pack + core + web (focus is a web org). Re-pin to the
-  post-P5-merge engine `main` SHA; bump core 0.2.0 → 0.3.0 in the pinned entry; web stays 0.1.0
-  (sha moves). Update `_pin_note`.
-- **Config profile = the pack `CLAUDE.md`** (doc 09 §10 confirmed): the focus pack
-  `plugins/shipwithai-fixkit-pack/CLAUDE.md` is the "tunables SSOT" (dev_command, hard-locks,
-  quality thresholds, gap-log glob). This is where the mining frequency threshold tunable belongs
-  — **but the pack lives in the private focus repo; core (public) cannot depend on it** (§2 seam).
-
----
-
-## 1. Decisions locked by Ethan (2026-06-05) — honored as-is
-
-| # | Decision | How this PLAN honors it |
+| Claim | Verified at | Result |
 |---|---|---|
-| 1 | Engine → PUBLIC in P5 | CC runs the audit + prepares remediation; **Ethan** flips visibility (`gh repo edit`) after audit passes + approval. CC never flips. |
-| 2 | Focus remote = `MangalaHQ/shipwithai-fixkit-focus`, private; `master`→`main`, default `main` | CC prepares the rename + sweep + re-pin; **Ethan/CC push at PR-out**. |
-| 3 | Pattern corpus = real `shipwithai.io/.fixkit/` (BUG-001…005), read-only; gate-run in-phase | The agent reads it read-only; the in-phase gate-run is §7 acceptance #5. |
-| 4 | P2–P4 real-bug gates still open, separately tracked | Out of scope here (§9). |
+| Validator binds all 5 UI methods to the UI layer | `core/lib/ledger-validator.js:21-25` | ✅ `UI: [browser-assertion, computed-style, dom-assertion, console-assertion, interaction-assertion]` |
+| `closed` requires FULL + evidence + verified_by + layer-method match | `ledger-validator.js:64-92,159-169` | ✅ `ASSIST_CANNOT_CLOSE`, `INTEGRITY_EVIDENCE_EMPTY`, `INTEGRITY_VERIFIER_MISSING`, `VERIFICATION_LAYER_MISMATCH` all enforced |
+| Web adapter already declares `UI: FULL`, conditional on `~~browser` | `web/lib/capability.json` | ✅ note: "UI FULL is conditional on `~~browser` … absent it downgrades to ASSIST → candidate" |
+| Web recipes call `~~browser` abstractly; CONNECTORS resolves it | `web/skills/web-reproduce,web-verify/SKILL.md`, `web/CONNECTORS.md:8-12` | ✅ recipes are stack-tool-agnostic; `~~browser` primary = "Claude in Chrome", *Playwright MCP already listed as an alternative* |
+| No plugin binds Playwright today | grep `playwright\|puppeteer` across `plugins/` | ✅ none — harness is the first |
+| Playwright runs in this sandbox | `npx playwright@1.60.0` resolved; `node v24.4.0` | ✅ runnable, but it is a **dependency + browser binaries** (see §6 — the one real tension) |
+
+**Conclusion: zero core-engine / validator change is required (handoff §4 confirmed).** The validator
+already enforces every close criterion; the MVP only needs to make `~~browser` *resolvable in-loop*.
+`core/lib/ledger-validator.js` and `core/tests/run-all.js` are **NOT touched** by this build.
 
 ---
 
-## 2. Engine deliverable A — the pattern-learning capability (the only new behavior)
+## 2. The seam — what actually changes
 
-**Where it lives (proposal — justified):** a core `agents/pattern-learning.md` + a
-`user-invocable:false` `skills/pattern-mining/` sub-skill + a zero-dep `lib/pattern-miner.js`.
-This mirrors the existing core idiom (flat-`.md` agents, `user-invocable:false` sub-skills, zero-dep
-`lib/` trust code) and keeps the *capability* in the public engine while the *org thresholds* stay
-in the private pack.
+```
+/fix spine ──REPRODUCE/VERIFY──▶ web-reproduce / web-verify   (web adapter recipes — UNCHANGED)
+                                        │  call ~~browser
+                                        ▼
+                        web/CONNECTORS.md  ~~browser row  ◀── INVERSION (only edit to the web adapter)
+                          primary  = web-harness Playwright runner (in-loop, auto-close)
+                          fallback = Claude in Chrome / Cowork live-DOM (final real-env spot-check)
+                                        │ resolves to
+                                        ▼
+              shipwithai-fixkit-web-harness  (NEW PLUGIN — pure mechanism)
+                 lib/drive.js  ── Playwright headless ──▶ astro dev :4321
+                 emits { method ∈ UI LAYER_METHODS, evidence: <observed numbers> }
+                                        │
+                                        ▼
+                          .fixkit ledger  → validator → closed @ FULL (autonomous)
+```
 
-### 2.1 `lib/pattern-miner.js` (zero-dep, pure functions)
-- **Input:** a `.fixkit/` directory path (or an array of pre-parsed ledger objects, for tests).
-- **Parser reuse:** promote `tests/lib/frontmatter.js` → **`lib/frontmatter.js`** (the real impl),
-  and leave `tests/lib/frontmatter.js` as a one-line **re-export shim**
-  (`module.exports = require('../../lib/frontmatter')`) so the gate's existing `require` and the
-  parser unit tests are untouched (minimal blast radius; rollback = delete the shim, revert the move).
-- **Matching key (the crux — keyed on normalized root-cause tokens, NOT just layer+subtype):**
-  for each ledger, derive a **signature** = the set of *salient normalized tokens* extracted from
-  `root_cause` (lowercased; stopword-stripped; package refs like `@scope/pkg` preserved as atomic
-  tokens; plus a small controlled vocabulary signal e.g. `organism`, `hydration`, `selector`,
-  `overflow`). Two bugs **match** when their signatures share ≥ K salient tokens **including ≥1
-  "scope" token** (a package ref or component/organism noun) — this is what unites 001/004/005 on
-  `@shipwithai/design` + `organism` while keeping 003 (consumer, no design-package token) out.
-  Secondary grouping facets recorded for the report: `symptom_layer`, `subtype`, `root_cause_layer`.
-  *(Counter-proposal considered and rejected: pure `root_cause_layer + subtype` — it splits the
-  real cluster, see §0. The token approach is presented for Ethan to confirm the exact K / vocab.)*
-- **Dedupe rule:** frequency counts **distinct bug `id`s** per signature (a single bug, even if it
-  mentions a token twice, counts once); signatures are canonicalized (sorted token set) so order
-  doesn't create phantom groups.
-- **Threshold:** `frequency_threshold`, **default 2**, injectable via a `{ threshold }` option
-  (see the pack seam below). A cluster with `distinct_bug_count >= threshold` becomes a candidate.
-- **Output:** a deterministic, ranked **candidate-pattern report** (ranked by distinct-bug count,
-  then by token salience), each candidate carrying `{ signature_tokens, bug_ids[], shared_facets,
-  count }`. Emitted as a structured object; the sub-skill renders markdown + (default) stdout.
-- **Malformed-ledger handling (the PR #3 lesson):** a file that fails to parse (no frontmatter, or
-  missing `id`) **fails loudly** — the miner throws / records a hard error and is never silently
-  skipped. A "skip-on-error" mode does **not** exist by default.
+Two edits ship the capability:
+1. **NEW plugin** `plugins/shipwithai-fixkit-web-harness/` — the Playwright `~~browser` mechanism.
+2. **ONE inversion** in `plugins/shipwithai-fixkit-web/CONNECTORS.md` — `~~browser` primary becomes
+   the harness runner; Cowork live-Chrome is demoted to a final spot-check. (Plus a one-line note in
+   `web/capability.json` that the `~~browser` precondition is now satisfiable in-loop — text only, the
+   FULL/ASSIST values are unchanged.)
 
-### 2.2 Pack seam (why core stays pack-agnostic)
-Core is public and standalone; it **cannot import the private pack**. So: the **miner takes the
-threshold as an injected option (default 2)**; the *sub-skill/agent* is responsible for reading the
-pack config profile (`shipwithai-fixkit-pack/CLAUDE.md`) **when a pack is present** and passing the
-value in. I will **add a `pattern_mining` tunable block to the pack `CLAUDE.md`** (focus repo) —
-`frequency_threshold: 2` — documented as the override the agent reads. No core→pack dependency.
+**How the agent resolves `~~browser` at runtime (no code wiring — by convention):** `~~browser` is a
+*prompt-level* placeholder. The orchestrator (`core/commands/fix.md`) and the `ui-bug-agent` read the
+web adapter's `CONNECTORS.md` as text to learn what `~~browser` maps to. The inverted row must cite the
+**exact CLI surface** of the harness runner so the agent invokes it unambiguously via Bash:
+`node plugins/shipwithai-fixkit-web-harness/lib/drive.js --url <url> --measure <type> --selector <sel>`.
+The `browser-drive` sub-skill is `user-invocable:false` (it is mechanism the engine drives, not a
+user command); its `SKILL.md` documents that exact CLI surface + the JSON output shape so resolution
+across the two sibling plugins is explicit, not inferred. (Architect R2.)
 
-### 2.3 `skills/pattern-mining/` (`user-invocable:false` sub-skill)
-Wires the loop: **mine → rank → propose**. Each proposal is a markdown playbook entry that **cites
-its source bug IDs** (evidence, not assertion). **Destination (proposed):** default **stdout** (the
-ranked report + rendered proposals); optional `--out <dir>` writes `PATTERN-<slug>.md` files into a
-**target repo's `docs/playbook/`** — **never** into any `.fixkit/` dir and **never** into the engine
-repo's own tree during a gate-run. For the in-phase gate-run against `shipwithai.io` we capture
-**stdout only** (no writes into the consumer repo). Ships with `evals/evals.json` (≥5; ≥3 trigger /
-≥2 must-not) and ends with `## What this skill does NOT do`.
-
-### 2.4 `agents/pattern-learning.md` (flat `.md`)
-Frontmatter `name` / `description`(+ triggers) / `model` / `tools` (read-only set: `Read, Glob,
-Grep, Bash` for invoking the miner — **no `Write`/`Edit` into `.fixkit/`**). Body: read a `.fixkit/`
-dir, run the miner, render ranked proposals citing bug IDs; **NEVER writes to a ledger**
-(append-only is the ledgers' property; the agent's output is a separate proposal artifact). Ends
-with `## What this agent does NOT do` (explicitly: does not mutate ledgers, does not auto-apply
-playbook entries, does not lower the threshold to force a hit).
-
-### 2.5 Gate additions (`tests/run-all.js`, additive only) — tests-first
-New section "Pattern miner" on **synthetic ledger fixtures** under `evals/fixtures/pattern/`:
-1. **recurring pair surfaces at threshold** — two synthetic ledgers sharing a design-organism
-   signature ⇒ one candidate with both bug_ids.
-2. **sub-threshold noise does NOT** — a lone unique-signature ledger ⇒ no candidate at threshold 2.
-3. **negative control** — a consumer-local ledger (003-shaped) does **not** join the organism
-   cluster (token gate excludes it).
-4. **malformed ledger fails loudly** — a fixture with no frontmatter ⇒ the miner throws / errors,
-   never a silent skip (asserts the error path; the PR #3 lesson).
-5. **≥1 mutation check** — flip the threshold (2→3) or drop a token from the matcher and assert the
-   recurring pair **stops** surfacing (the test bites; a no-op miner cannot pass).
+The harness is **mechanism only**. It does not classify bugs, pick the proof method, or edit app
+source — `triage` / `verification` / the layer-agents (all in core) do that.
 
 ---
 
-## 3. Engine deliverable B — public-readiness audit (no code behavior change)
+## 3. The harness plugin layout
 
-Output = an audit checklist in the PR body, **each item with its verifying command**. Items:
+```
+plugins/shipwithai-fixkit-web-harness/
+  .claude-plugin/{plugin.json, marketplace.json}     # 4-key version sync with root marketplace
+  manifest.json
+  CONNECTORS.md          # declares THIS plugin is the ~~browser primary binding (Playwright)
+  CLAUDE.md              # config profile: ports(4321), viewport matrix(1280/768/375), timeouts — NOT hardcoded in the skill
+  README.md  CHANGELOG.md
+  lib/
+    drive.js             # thin Node Playwright runner: navigate → measure → emit {method, evidence}
+    measures.js          # the 5 LAYER_METHODS helpers (1:1 with the 5 UI methods); pure shaping, browser-free where possible
+  skills/
+    browser-drive/
+      SKILL.md           # user-invocable:false — the ~~browser recipe surface (how to call drive.js)
+      evals/evals.json   # >=5 evals (>=3 trigger / >=2 must-not)
+  tests/
+    run-all.js           # the harness's OWN gate (quality limits ALWAYS; Playwright smoke CONDITIONAL — §6)
+    lib/frontmatter.js   # mirrored from the web adapter gate
+  evals/fixtures/
+    smoke-page/          # a trivial static HTML page: a known-overflowing <pre> + a dead button
+```
 
-| # | Item | Verifying command | Current status |
+Composed **by convention** (slash-path refs + a `user-invocable:false` sub-skill), never by
+`plugin.json` dependency wiring. Every skill/agent ends with `## What this … does NOT do`.
+
+---
+
+## 4. The `~~browser` recipe contract (what `browser-drive` exposes)
+
+`lib/drive.js` is invoked as a CLI by CC in-loop. It takes a target URL + a measurement request and
+returns a single JSON line `{ method, ok, evidence }` where `method` is exactly one of the five UI
+`LAYER_METHODS` and `evidence` carries the **observed numbers** (so the close proof is non-circular).
+
+| Recipe (mirrors `web-reproduce`/`web-verify`) | Playwright mechanism | Emits `method` | `evidence` (observed) |
 |---|---|---|---|
-| 1 | **LICENSE (MIT) present + year** | `test -f LICENSE && grep -q 'MIT' LICENSE && grep -q 2026 LICENSE` | **FAILS today → remediation: add root MIT `LICENSE` (2026 ShipWithAI)** |
-| 2 | NOTICE + vendored-spine attribution intact | `grep -q 'Jesse Vincent' NOTICE && grep -q '2025' NOTICE && grep -q 'systematic-debugging' NOTICE` | passes |
-| 3 | README accurate for **six** plugins | `ls -1 plugins \| wc -l` (=6) + README cross-check | verify in-phase |
-| 4 | No secrets/tokens/local-abs paths in tracked files | `git grep -nE '(/Users/\|ghp_\|sk-\|BEGIN [A-Z ]*PRIVATE KEY)' -- . ':!*.md'` (+ a curated `.md` sweep) | sweep in-phase |
-| 5 | CHANGELOG current (core 0.3.0 entry) | `grep -q '0.3.0' plugins/shipwithai-fixkit-core/CHANGELOG.md` | after bump |
+| layout / overflow | `el.scrollWidth` vs `el.clientWidth` via `page.evaluate` | `dom-assertion` | `{scrollWidth, clientWidth, overflow:bool}` |
+| visual / styling | `getComputedStyle(el)` read | `computed-style` | `{prop, value}` |
+| client-runtime | capture `console` errors/warnings on load | `console-assertion` | `{messages:[…]}` |
+| interaction / behavior | `page.click()` then read post-state DOM | `interaction-assertion` | `{before, after}` |
+| responsive | re-measure across the viewport matrix | `browser-assertion` | `{perWidth:{1280,768,375}}` |
 
-Remediation commits are **docs/licensing only** (LICENSE add, README/CHANGELOG touch-ups); no
-runtime code changes. If the secret-sweep finds a real local-absolute path in a tracked file, fix it.
+**Failure / timeout shape (Critic gap):** on a navigation/selector/timeout failure `drive.js` exits
+**non-zero** and emits `{ ok:false, error:<reason> }` with **no `method`** — so a failed observation can
+never be mistaken for proof, and the layer-agent records a fix-failure (feeding the engine's 3-strikes),
+never a close. A successful observation always carries both `method` and `evidence`.
 
-### Versioning (cross-phase bar)
-Core **0.2.0 → 0.3.0** (minor — new agent/miner capability, not a patch). **4-key sync**:
-`plugins/shipwithai-fixkit-core/.claude-plugin/plugin.json` == per-plugin `marketplace.json`
-(top-level **and** `plugins[0]`) == root `.claude-plugin/marketplace.json` entry. CHANGELOG entry
-added. No other plugin's version moves (the capability is core-only).
+The runner stands up the target via the adapter's `~~runtime` (`astro dev :4321`) — it does **not**
+embed the server command; it receives the URL. Reproduce and verify call the **same** helper with the
+**same** selector — verify asserts the mirrored result. The numbers `drive.js` returns are what the
+layer-agent writes into `verification.evidence`, and the `method` string it returns is written verbatim
+into `verification.method`; the validator already refuses a close without evidence and refuses a UI
+method outside its `LAYER_METHODS` set.
 
----
-
-## 4. Focus repo deliverables
-
-1. **CI fix** — port the engine's PR #3 `validate-plugin.yml` (add `fetch-depth: 0`; diff against
-   `github.event.pull_request.base.sha`; **fail loudly** if the base commit is missing; tolerate only
-   a genuinely empty plugin-path filter; self-trigger on workflow edits; `workflow_dispatch` =
-   validate-all). Verify the focus file first, fix what's actually there (confirmed: same bug).
-2. **Re-pin** — after the **engine PR merges first**, take the new engine `main` SHA and update the
-   focus root `marketplace.json`: both pinned entries' `sha`, core's pinned `version` 0.2.0 → 0.3.0,
-   and `_pin_note` (new SHA + rationale). Web stays 0.1.0. **Explicit sequence:** engine PR merges →
-   capture SHA → focus re-pin commit → focus PR. (drift-monitor flags staleness if skipped.)
-3. **Remote prep** — rename local `master` → `main`; default `main` (Q3 convention); secret-sweep
-   the focus tree (same `git grep`); add a README/CLAUDE.md note that the engine pin is **public
-   upstream**. CC prepares; **Ethan/CC create the private remote + push at PR-out**.
-4. **Add the `pattern_mining` tunable** to `plugins/shipwithai-fixkit-pack/CLAUDE.md`
-   (`frequency_threshold: 2`) — the override the agent reads (§2.2).
-
-### Cross-repo install proof (the "install works" half of the P5 gate)
-Design (P1 pattern — evidence where exercisable, else documented procedure + a deterministic
-resolution check + critic):
-- (a) **Engine marketplace standalone** — `claude plugin marketplace add` resolves the six plugins.
-- (b) **Focus marketplace** — pulls the pack + **pinned** engine plugins via
-  `source:{source:git-subdir, url, path, ref, sha}`.
-- Where the CLI can't run from CC's context, ship a **step-by-step procedure** + a **deterministic
-  resolution check**: a zero-dep script that, given the focus `marketplace.json` pin, fetches
-  `url`@`sha` and **asserts the `path` subdirs exist** (and the pinned `plugin.json` versions match).
-  **Cowork/Ethan execute the live install as the final check** (acceptance #6).
+**The method string is THE coupling point (Architect R1/S1).** `verification.method` must be byte-exact
+one of the five hyphenated UI strings or the validator raises `VERIFICATION_LAYER_MISMATCH`. To prevent
+silent drift, `measures.js` does **not** hardcode the strings — its unit test asserts every emitted
+`method` is a member of `LAYER_METHODS.UI` imported from core via a sibling `require(
+'../../shipwithai-fixkit-core/lib/ledger-validator')` (zero-dependency; no npm). On `verified_by`: the
+validator only checks non-blank (no enum), so the layer-agent records itself plus the runner
+(e.g. `ui-bug-agent (web-harness/playwright)`) — confirmed legal by reading the validator, see §1.
 
 ---
 
-## 5. Cross-phase bar (every box, explicitly)
-ADR-0002 PLAN approved before code (this doc) · CI green on both PRs (run URLs in PR bodies) ·
-new sub-skill: <200 / inline ≤20 / ≥5 evals (3-trigger / 2-must-not) / ends `## What this … does
-NOT do` · new agent ends `## What this agent does NOT do` · miner negative tests + ≥1 mutation
-check · quality ≥8.0 to ship · CHANGELOG + version bumped (core minor) · **evidence, not assertions**
-(every proposal cites bug IDs; every audit item cites a command).
+## 5. Tests-first plan — the harness's own gate (tests written before the runner)
+
+The harness gets its **own** deterministic gate `tests/run-all.js`, mirroring the web adapter's gate
+structure (`web/tests/run-all.js`). Built **tests-first**:
+
+**Tier A — deterministic quality limits (ALWAYS run, zero-dependency — this is the CI-green anchor):**
+- **≥ 1 skill present** — *intentional departure* from the web/core gate's `≥ 4` (those plugins are
+  multi-recipe adapters; the harness is a **single-purpose mechanism** plugin with one job: drive a
+  browser). The harness gate hard-codes `≥ 1`, not a copy of `≥ 4`, and this is stated so a future
+  "mirror check" reads it as deliberate, not drift (Critic Major #1). The contract requires `≥ 1
+  user-invocable:false` sub-skill — `browser-drive` satisfies it; having **zero** user-invocable skills
+  is valid for a pure-mechanism plugin the engine drives (it is not a human command surface).
+- every `SKILL.md` < 200 lines; max fenced block ≤ 20 lines; `description` < 200 chars; ends with
+  `## What this … does NOT do`; ≥ 1 `user-invocable:false` sub-skill.
+- `browser-drive` evals: ≥ 5 objects with `{id,prompt,expectedBehavior,category,shouldTrigger}`,
+  split ≥ 3 trigger / ≥ 2 must-not.
+- **4-key version sync**: `plugin.json` == per-plugin `marketplace.json` top == `plugins[0]` == root
+  `marketplace.json` entry.
+- **Pure-helper unit test:** `measures.js` shapes a known geometry input into the right `{method,
+  evidence}` with **no browser** — the deterministic proof the contract is honored. The test pins each
+  emitted `method` against `LAYER_METHODS.UI` imported from core's validator (sibling `require`, no npm)
+  so the strings cannot drift (Architect S1).
+- **Cross-plugin contract test (Architect R1 — closes the phantom-dependency gap):** a checked-in
+  fixture ledger (`evals/fixtures/`) populated exactly as the layer-agent would from `drive.js` output
+  (`verification.method` + `verification.evidence` + `capability_tier: FULL` + `verified_by`) is run
+  through core's `validateLedger()` (imported via sibling `require`) and asserted to pass — and a
+  negative twin with a drifted method string is asserted to fail `VERIFICATION_LAYER_MISMATCH`. This is
+  the only test that exercises the harness→validator contract end-to-end, and it is zero-dependency.
+
+**Tier B — Playwright smoke (CONDITIONAL — see §6):** if `require('playwright')` + a browser binary
+resolve, launch headless against `evals/fixtures/smoke-page/`, assert each of the 5 helpers emits its
+`method` + non-empty `evidence` on the live page **and asserts polarity** — the fixture's broken `<pre>`
+/ dead button yield `ok:false`, and a fixed variant yields `ok:true` (Critic gap: a helper that always
+returns `ok:true` would be a useless proof). If Playwright/binary is **absent**, print
+`SKIP — playwright not installed` and **do not fail**. The gate's green does not depend on Tier B.
+
+No change to `core/lib/ledger-validator.js` or `core/tests/run-all.js`. **Conditional escape hatch:**
+if (and only if) the build discovers a genuinely new proof binding is needed, that is a *separate*
+tests-first validator change (failing fixture first, mutation-checked, no guard weakened) that
+**re-HALTs to Ethan** — default expectation: not needed.
 
 ---
 
-## 6. Critic pass (worker ≠ grader)
-A fresh `architect`/`critic` refutation pass on **each** repo's diff before "done" — verifying
-against the §7 acceptance criteria, not a vague "is it done?". Worker context never self-approves.
+## 6. The one real tension → a decision for Ethan (HALT point)
+
+The repo identity is **"zero-dependency Node, no package manager, deterministic gate"** (root
+`CLAUDE.md`). Playwright is a **real dependency** (npm package + a Chromium browser binary). This
+collides with that identity in exactly one place: **can the harness gate be deterministically green in
+CI without Playwright installed?**
+
+**Proposed resolution (baked into §5):** split the gate. Tier A (quality limits + version sync +
+pure-helper unit test) is zero-dependency and is the deterministic green core CI relies on. Tier B
+(the live Playwright smoke) is **opt-in**: it runs and proves the runner where Playwright is present
+(local dev, the fixture run) and **skips cleanly** where it is not. Playwright is a **documented
+prerequisite** in the harness `CLAUDE.md`/`README` (`npx playwright install chromium`) — **not
+vendored**, and **not added** to any package manifest at repo root.
+
+**Ethan's call (please confirm in plan-in):**
+- **(default, recommended)** Split gate — Tier A deterministic/zero-dep, Tier B conditional smoke.
+- **(alt)** Playwright is a *hard* prerequisite of the harness gate (gate fails if absent). Cleaner
+  proof, but the harness gate is then non-deterministic in a clean CI checkout — contradicts the
+  repo's deterministic-gate property unless CI installs Playwright in a setup step.
+
+Everything else in this plan is independent of which option you pick; only §5 Tier B wording changes.
+
+**Optional Tier C (Architect S2 — recommended add-on, not blocking):** a separate CI job
+(`.github/workflows/harness-smoke.yml`) that installs Playwright and runs Tier B, triggered only on
+changes under `plugins/shipwithai-fixkit-web-harness/`. This keeps the default plugin gate
+zero-dependency/deterministic **and** gives CI-level proof the runner actually runs where it matters —
+resolving the steelman objection that Tier B is otherwise never exercised in CI. Touching
+`.github/workflows/` is in the security-review scope (§7).
 
 ---
 
-## 7. Acceptance suite = the Phase-5 gate (doc 10 §P5)
+## 7. Security review (required before merge)
 
-**Mechanized (CC):**
-1. All **seven** gates green (six engine plugins + focus pack); CI validate matrix **actually
-   executes** on both PRs (run URLs in PR bodies — not just "configured").
-2. Miner controls: recurring pair surfaces at threshold; sub-threshold does not; **negative control
-   (003-shaped) stays out**; malformed ledger → loud failure; mutation check bites.
-3. Audit checklists complete (engine public-readiness; focus secret-sweep) — each item with command.
-4. Critic refutation pass on each PR.
-
-**In-phase gate-run (real data, NOT deferred):**
-5. Run `pattern-learning` against `shipwithai.io/.fixkit/` (read-only). **Expectation:** it surfaces
-   the **design-organism cluster {BUG-001, BUG-004, BUG-005}** at threshold 2, cites those IDs, and
-   **excludes BUG-003** (the consumer-local negative control). **Honesty clause:** if the corpus
-   genuinely yields nothing at threshold 2, **report that and HALT** — do **not** lower the bar to
-   force a pass.
-6. **Live install proof** executed by Ethan/Cowork after the repos are public/pushed.
-
-**Ethan's manual steps (CC prepares, Ethan executes):** create the private focus remote + push;
-flip engine visibility to public (after audit + approval).
+The harness **executes target code** (launches a browser + drives a dev server in the sandbox). Per
+the repo's development-workflow rule, a **security-review pass** is required before adding
+`manifest.json` / `assets/` / any `.claude/hooks/` to the harness. Scope: the `drive.js` CLI surface
+(no arbitrary-URL / arbitrary-shell injection; bounded to the adapter's target + selector), Playwright
+launch flags (headless, no remote debugging port exposed), and the fixture page (static, local).
 
 ---
 
-## 8. Risks & mitigations
-| Risk | Mitigation |
-|---|---|
-| **Small corpus (4 ledgers).** Threshold too high ⇒ nothing surfaces. | Default **2**, tunable via pack config; the real cluster is 3 bugs, so threshold 2 has margin. Honesty clause if it still yields nothing. |
-| **Matching-key over/under-fit.** Token matcher could over-merge (catch 003) or under-merge (split 001/004/005). | The "≥1 scope token" gate is exactly the discriminator (003 has no design-package token); the negative-control test (§2.5 #3) bites if it regresses. K / vocab confirmed with Ethan before coding. |
-| **Promoting `frontmatter.js`** touches a gate-adjacent file. | Re-export shim keeps the gate's `require` + parser unit tests untouched; move is behavior-preserving (green gate proves it); trivial rollback. |
-| **Re-pin sequencing** (engine must merge before focus re-pin). | Sequence stated explicitly (§4.2); focus PR opens only after the engine SHA exists. |
-| **Public flip exposes secrets.** | `git grep` secret-sweep is audit item #4, run before Ethan flips; flip is gated on audit pass. |
-| **Agent writes a ledger / auto-applies.** | Agent tools exclude `Write`/`Edit` into `.fixkit/`; "does NOT do" enumerates it; proposals go to stdout / target `docs/playbook/` only. |
+## 8. Critic plan (worker ≠ grader)
+
+A **fresh** critic (not the implementing context) verifies before "done":
+1. **Mechanized:** harness gate Tier A green (zero-dep); `measures.js` unit test green; core gate
+   **still green and byte-unchanged** (`git diff` on `core/` empty); 4-key version sync holds; every
+   `.fixkit/*` ledger produced passes the engine validator (exit 0).
+2. **Judgment (the anti-circularity check):** for the demo fixture (§9), the critic confirms each
+   diagnosed root cause **matches the planted defect** (from the Ethan-only appendix) and that
+   reproduction asserts the **symptom/behavior**, not the patched lines — no "make the test I just
+   wrote pass." The two UI bugs must reach `closed` at `FULL` with the Playwright **measurement** (not
+   a diff) recorded as `verification.evidence`.
+
+The critic is a separate agent/context from the implementer (the repo's "worker ≠ grader" rule).
 
 ---
 
-## 9. Out of scope (unchanged)
-P2–P4 real-bug gate-runs (separately tracked) · P1 close-out (Upstash env, shipwithai.io deploy,
-prod re-check) · design-repo push (later) · **writing to any `.fixkit/` ledger** (read-only mining) ·
-**auto-applying** playbook proposals (human reviews; the agent only proposes) · new adapters or pack
-features · **weakening any guard**.
+## 9. Demo-target fixture (built by Cowork AFTER this HALT — out of scope for *this* plan)
+
+Per the handoff, a disposable Astro app (`fixkit-fe-astro/`) seeded with one symptom-only bug per
+class (no failing tests attached — the loop must REPRODUCE itself). Planted root causes live in a
+critic/Ethan-only appendix. The four bugs exercise the close matrix: 2 UI (→ now `closed` at FULL via
+Playwright, previously capped at `candidate`), 1 System, 1 Logic (already FULL via shell/test-runner).
+**This plan does not build the fixture or the ledgers** — it builds the harness + inversion that make
+the two UI closes possible. The end-to-end fixture run is the *acceptance demo* that follows plan-in.
 
 ---
 
-## 10. Execution order (post-approval, autonomous to two PRs)
-1. Engine: promote parser + shim → `lib/pattern-miner.js` → synthetic fixtures + gate section
-   (tests-first) → `skills/pattern-mining/` (+ evals) → `agents/pattern-learning.md` → core 0.3.0
-   bump + 4-key sync + CHANGELOG → add root `LICENSE` + audit checklist → `node tests/run-all.js`
-   green → in-phase gate-run on `shipwithai.io/.fixkit/` (capture stdout) → critic → **engine PR**.
-2. (Engine PR merges → capture new `main` SHA.)
-3. Focus: CI fix → pack `pattern_mining` tunable → re-pin to new SHA (core 0.3.0) + `_pin_note` →
-   secret-sweep → `master`→`main` + README note → resolution-check script → focus gate green →
-   critic → **focus PR**.
-4. Hand back to Ethan: live install proof + engine visibility flip + focus remote push.
+## 10. Scope boundary (what this build does / does NOT do)
 
-> **HALT — ADR-0002.** Awaiting Ethan's approval (and confirmation of the §2.1 matcher K / vocab)
-> before any implementation.
+**Does:** the new harness plugin (green Tier-A gate) at initial version **`0.1.0`** (matching the other
+adapters); a **`shipwithai-fixkit-web-harness` entry added to the root `.claude-plugin/marketplace.json`
+plugins array** (required or the 4-key version-sync check fails on key 4 = `NOT_FOUND` — Critic Major
+#2); the `web/CONNECTORS.md` `~~browser` inversion; the recipe contract for the 5 UI methods; the
+harness's own tests-first gate; a security-review pass.
+
+**Does NOT:**
+- change `core/lib/ledger-validator.js`, `core/tests/run-all.js`, or the spine;
+- build Next/Vite/Svelte/Nuxt adapters (only the stack-agnostic *seam* is reused later);
+- touch the org pack, hard-locks, or the live `shipwithai.io` bugs;
+- make Cowork live-Chrome the primary UI proof (it becomes a final spot-check only);
+- build the `fixkit-fe-astro` fixture or its 4 ledgers (that is the post-HALT acceptance demo).
 
 ---
 
-## What this PLAN does NOT do
-- It does not implement anything yet (ADR-0002 — HALT for approval first).
-- It does not flip engine visibility or push the focus remote (Ethan's manual steps).
-- It does not write to any `.fixkit/` ledger, lower the mining threshold to force a pass, or
-  auto-apply a playbook proposal.
-- It does not weaken or edit any state-machine guard; the new capability is additive + read-only.
+## ADR — `~~browser` in-loop Playwright binding
+
+- **Decision:** ship the `~~browser` connector as a NEW shared `shipwithai-fixkit-web-harness` plugin
+  (a thin headless Playwright runner emitting the 5 UI `LAYER_METHODS` with observed-number evidence),
+  and invert the web adapter's `~~browser` row so the runner is primary and Cowork live-Chrome is a
+  final spot-check. No core/validator change.
+- **Drivers:** time-to-fix (UI bugs close autonomously, not capped at `candidate`); reuse (one runner,
+  thin per-stack adapters later); the trust anchor stays untouched (the validator already enforces close).
+- **Alternatives considered:**
+  (a) *Extend the web adapter in place* — rejected: couples the reusable runner to Astro; the handoff
+  wants a shared engine plugin reused by every web stack.
+  (b) *Keep Cowork live-Chrome primary* — rejected: keeps a human in the inner loop; UI stays at
+  `candidate`, defeating the goal.
+  (c) *Add a new validator proof method for "playwright"* — rejected & unnecessary: the 5 UI methods
+  already cover the measurements; a new binding would be an unjustified trust-anchor change.
+- **Why chosen:** smallest change that flips UI from ASSIST→FULL in-loop while leaving the deterministic
+  trust anchor byte-unchanged; the dependency cost (Playwright) is contained behind a split gate.
+- **Consequences:** the harness introduces a non-vendored Playwright prerequisite (managed via the §6
+  split gate); a security review is owed (it executes target code); the fixture demo (§9) is the
+  end-to-end acceptance that follows plan-in. **Trust limitation (Architect S3):** the validator gates
+  close on a non-blank `verified_by` and a layer-valid `method`, but carries **no provenance field** —
+  it cannot machine-distinguish "FULL proven by Playwright" from a dishonestly-claimed FULL. Trust lives
+  in the layer-agent writing the ledger honestly (and in the recorded evidence numbers being real
+  measurements), not in the validator policing how FULL was reached. The cross-plugin contract test (§5)
+  and the critic's anti-circularity check (§8) are the compensating controls; a machine-checked
+  provenance field would be a *separate* tests-first validator change and is out of scope here.
+- **Follow-ups:** Next.js as the second Phase-A stack; the `fixkit-fe-astro` 4-bug acceptance demo;
+  Ethan runs any git push / publish (sandbox has no auth).
+
+---
+
+## RALPLAN-DR summary (pre-review)
+
+**Principles:** (1) the trust anchor stays byte-unchanged — capability comes from mechanism, not from
+weakening a guard; (2) compose by convention, not by dependency wiring; (3) the proof is the observed
+number, never a source diff; (4) the deterministic gate must stay deterministic (dependency contained).
+
+**Decision drivers (top 3):** time-to-fix on UI bugs · reuse across web stacks · zero core change.
+
+**Viable options:** [chosen] new shared harness plugin + CONNECTORS inversion · [alt-a] extend web
+adapter in place · [alt-b] keep Cowork-Chrome primary. Alts invalidated in the ADR (coupling; human in
+the loop).
+
+**Open decision for Ethan (§6):** split gate (default) vs Playwright-as-hard-prerequisite.

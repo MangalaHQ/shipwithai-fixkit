@@ -2,5 +2,5 @@
   "UI": "FULL",
   "Logic": "FULL",
   "System": "FULL",
-  "note": "FULL on the Astro + content-collections stack. UI FULL is conditional on ~~browser (Claude in Chrome): when no browser connector is wired, the UI layer downgrades to ASSIST and web-verify emits handoff/v0 (core lib/handoff.schema.md), stopping the ledger at candidate. Logic FULL needs ~~test-runner (node/vitest); System FULL needs the shell / ~~ci (GitHub Actions)."
+  "note": "FULL on the Astro + content-collections stack. UI FULL is conditional on ~~browser: now satisfiable IN-LOOP by the shipwithai-fixkit-web-harness Playwright runner (CONNECTORS.md ~~browser primary), so UI closes autonomously at FULL; Claude in Chrome / Cowork live-DOM is a final spot-check only. When no browser connector is wired at all, the UI layer downgrades to ASSIST and web-verify emits handoff/v0 (core lib/handoff.schema.md), stopping the ledger at candidate. Logic FULL needs ~~test-runner (node/vitest); System FULL needs the shell / ~~ci (GitHub Actions)."
 }

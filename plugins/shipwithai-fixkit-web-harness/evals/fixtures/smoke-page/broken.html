@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- smoke fixture (BROKEN): each of the 5 measures should report ok:false here.
+     Paired with fixed.html (healthy, ok:true) so the Tier-B smoke asserts POLARITY,
+     not just "emits a method". Static file — Playwright loads it via file:// (no server). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>web-harness smoke — broken</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    /* BUG: a fixed narrow box + no wrapping -> the long line overflows horizontally. */
+    #code {
+      width: 280px;
+      white-space: pre;      /* fixed.html uses pre-wrap */
+      overflow-x: auto;
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>web-harness smoke fixture (broken)</h1>
+
+  <!-- overflow / computed-style / viewport target -->
+  <pre id="code">const reallyLongIdentifier = someFunctionThatReturnsAValue(withSeveralArguments, thatDoNotWrap, atAll);</pre>
+
+  <!-- interaction target: a Save button with NO handler -> #status never changes -->
+  <button id="save">Save</button>
+  <span id="status">idle</span>
+
+  <script>
+    // BUG: emits a console error on load (console-assertion reproduces on its presence).
+    console.error('hydration error: storage not allowed');
+    // BUG: #save is intentionally unwired — clicking it does nothing (dead control).
+  </script>
+</body>
+</html>

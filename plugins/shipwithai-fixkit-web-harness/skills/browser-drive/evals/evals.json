@@ -1,0 +1,48 @@
+{
+  "skillId": "browser-drive",
+  "version": "0.1.0",
+  "evals": [
+    {
+      "id": "browser-drive-01",
+      "prompt": "Reproduce the code-block overflow on the live page — measure the pre element via the browser.",
+      "expectedBehavior": "Invoke lib/drive.js --measure overflow --selector on the target; expect ok:false (scrollWidth > clientWidth) as the reproduction, recording the observed numbers as evidence.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "browser-drive-02",
+      "prompt": "Verify the Save button now updates the status after my fix, by driving it in the browser.",
+      "expectedBehavior": "Invoke lib/drive.js --measure interaction --selector #save --target #status --expected saved; expect ok:true (interaction-assertion) as the mirrored verification.",
+      "category": "interaction",
+      "shouldTrigger": true
+    },
+    {
+      "id": "browser-drive-03",
+      "prompt": "Check whether the page logs a hydration console error on load.",
+      "expectedBehavior": "Invoke lib/drive.js --measure console; emit console-assertion with the captured messages as evidence (ok:false when an error is present).",
+      "category": "client-runtime",
+      "shouldTrigger": true
+    },
+    {
+      "id": "browser-drive-04",
+      "prompt": "Sweep 1280/768/375 and confirm the layout no longer overflows at any width.",
+      "expectedBehavior": "Invoke lib/drive.js --measure viewport --selector --widths 1280,768,375; emit browser-assertion with per-width numbers and the failing widths as evidence.",
+      "category": "responsive",
+      "shouldTrigger": true
+    },
+    {
+      "id": "browser-drive-05",
+      "prompt": "Classify this bug and decide which layer it belongs to.",
+      "expectedBehavior": "Do NOT trigger browser-drive — classification is core's triage, not the ~~browser mechanism. The harness only observes and reports numbers.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "browser-drive-06",
+      "prompt": "Edit the pre CSS to add white-space: pre-wrap and commit the fix.",
+      "expectedBehavior": "Do NOT trigger browser-drive — authoring/editing source is the layer-agent's job, not the observation mechanism. drive.js never edits source.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

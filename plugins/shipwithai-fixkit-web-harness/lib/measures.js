@@ -76,6 +76,20 @@ function viewport(o) {
   };
 }
 
-const MEASURES = { overflow, computedStyle, consoleErrors, interaction, viewport };
+// scroll-driven interaction — o: { ratio, before, after, expected? }
+// Scroll-spy / scroll-revealed STATE: the user scrolls, a scroll/IntersectionObserver listener
+// flips a target's state. Behaviorally a post-action state assertion (like `interaction`), so it
+// emits METHOD.interaction (interaction-assertion) — NO new UI method, core stays frozen.
+function scrollReadState(o) {
+  const changed = o.before !== o.after;
+  const ok = o.expected === undefined ? changed : o.after === o.expected;
+  return {
+    method: METHOD.interaction,
+    ok,
+    evidence: { ratio: o.ratio, before: o.before, after: o.after, expected: o.expected === undefined ? null : o.expected },
+  };
+}
+
+const MEASURES = { overflow, computedStyle, consoleErrors, interaction, viewport, scrollReadState };
 
 module.exports = { ...MEASURES, MEASURES, METHOD };

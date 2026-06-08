@@ -15,6 +15,7 @@
 //   --measure computed-style --selector <sel> --prop <p> [--expected <v>] -> computed-style
 //   --measure console        [--wait <ms>]                         -> console-assertion
 //   --measure interaction    --selector <sel> --target <sel> [--prop <p>] [--expected <v>] -> interaction-assertion
+//   --measure scroll-read-state --target <sel> --ratio <0..1> [--scroller <sel>] [--prop <p>] [--expected <v>] [--wait <ms>] -> interaction-assertion
 //   --measure viewport       --selector <sel> [--widths 1280,768,375] -> browser-assertion
 //
 // SUCCESS  -> exit 0, stdout = { method, ok, evidence }
@@ -87,6 +88,24 @@ async function main() {
       await page.waitForTimeout(Number(args.wait || 200));
       const after = await page.$eval(args.target, (el, p) => el[p], prop);
       result = measures.interaction({ before, after, expected: args.expected });
+    } else if (args.measure === 'scroll-read-state') {
+      if (!args.target || args.ratio === undefined || args.ratio === true) return fail('scroll-read-state needs --target and --ratio');
+      const ratio = Number(args.ratio);
+      if (Number.isNaN(ratio)) return fail(`scroll-read-state --ratio '${args.ratio}' is not a number`);
+      const prop = args.prop || 'textContent';
+      // Same allowlist as `interaction` — the post-scroll read is a rendered STATE, never internals.
+      if (!INTERACTION_PROPS.includes(prop)) return fail(`scroll-read-state --prop '${prop}' not allowed (use one of: ${INTERACTION_PROPS.join(', ')})`);
+      const before = await page.$eval(args.target, (el, p) => el[p], prop);
+      // Scroll the named container (or the document scrolling element) to ratio of its scrollable height.
+      await page.evaluate(({ sel, r }) => {
+        const el = sel ? document.querySelector(sel) : (document.scrollingElement || document.documentElement);
+        if (!el) throw new Error(`scroller not found: ${sel}`);
+        const top = r * Math.max(0, el.scrollHeight - el.clientHeight);
+        if (sel) { el.scrollTop = top; } else { window.scrollTo(0, top); }
+      }, { sel: args.scroller || null, r: ratio });
+      await page.waitForTimeout(Number(args.wait || 400)); // let IntersectionObserver / scroll listeners settle
+      const after = await page.$eval(args.target, (el, p) => el[p], prop);
+      result = measures.scrollReadState({ ratio, before, after, expected: args.expected });
     } else if (args.measure === 'viewport') {
       if (!args.selector) return fail('viewport needs --selector');
       const widths = String(args.widths || '1280,768,375').split(',').map((w) => parseInt(w, 10)).filter(Boolean);

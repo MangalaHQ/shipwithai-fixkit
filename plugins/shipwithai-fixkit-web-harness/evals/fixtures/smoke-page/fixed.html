@@ -26,12 +26,27 @@
   <button id="save">Save</button>
   <span id="status">idle</span>
 
+  <!-- scroll-read-state target: enables past 25% read (the fix wires a scroll listener). -->
+  <button id="react" disabled>React</button>
+
+  <!-- tall spacer so the document is scrollable (scrollHeight > clientHeight). -->
+  <div style="height: 3000px"></div>
+
   <script>
     // FIX: no console error on load.
     // FIX: #save is wired -> clicking it sets #status to 'saved'.
     document.getElementById('save').addEventListener('click', function () {
       document.getElementById('status').textContent = 'saved';
     });
+    // FIX: scroll-spy — #react enables once the reader passes 25% of the scrollable height.
+    var react = document.getElementById('react');
+    function syncReact() {
+      var se = document.scrollingElement || document.documentElement;
+      var ratio = se.scrollTop / Math.max(1, se.scrollHeight - se.clientHeight);
+      if (ratio >= 0.25) react.disabled = false;
+    }
+    window.addEventListener('scroll', syncReact);
+    syncReact();
   </script>
 </body>
 </html>

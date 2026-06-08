@@ -1,0 +1,41 @@
+name: Web-harness Playwright smoke (Tier C)
+
+# Tier C (split-gate, plan §6): the default plugin gate (validate-plugin.yml) runs the harness
+# tests/run-all.js with Playwright ABSENT, so its Tier-B smoke SKIPs and CI stays zero-dependency
+# deterministic. THIS job installs Playwright and runs the SAME gate with the browser present, so
+# the live runner is actually exercised in CI — but only on changes to the harness plugin. It does
+# not gate other plugins and never affects the deterministic default green.
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/shipwithai-fixkit-web-harness/**'
+      - '.github/workflows/harness-smoke.yml'
+  workflow_dispatch: {}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Playwright is a documented PREREQUISITE, not a repo dependency — installed here ad hoc into
+      # a throwaway dir OUTSIDE the repo tree, never vendored or added to a package manifest at the
+      # repo root (the repo stays zero-dependency; no package.json is introduced into the checkout).
+      - name: Install Playwright + Chromium (out-of-tree)
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.60.0
+          npx playwright install --with-deps chromium
+
+      - name: Run the harness gate (Tier A + live Tier B)
+        env:
+          # Resolve the out-of-tree Playwright to the zero-package-json plugin (same trick used to
+          # prove the runner locally). Absent this, the gate would SKIP Tier B and still pass.
+          NODE_PATH: /tmp/pw/node_modules
+        run: node plugins/shipwithai-fixkit-web-harness/tests/run-all.js

@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- smoke fixture (FIXED): the healthy twin of broken.html. Each of the 5 measures should
+     report ok:true here. The two files together prove the helpers have correct polarity. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>web-harness smoke — fixed</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    /* FIX: wrap long lines so content never exceeds its box. */
+    #code {
+      width: 280px;
+      white-space: pre-wrap;      /* the fix: pre -> pre-wrap */
+      overflow-wrap: anywhere;
+      overflow-x: auto;
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>web-harness smoke fixture (fixed)</h1>
+
+  <pre id="code">const reallyLongIdentifier = someFunctionThatReturnsAValue(withSeveralArguments, thatDoNotWrap, atAll);</pre>
+
+  <button id="save">Save</button>
+  <span id="status">idle</span>
+
+  <script>
+    // FIX: no console error on load.
+    // FIX: #save is wired -> clicking it sets #status to 'saved'.
+    document.getElementById('save').addEventListener('click', function () {
+      document.getElementById('status').textContent = 'saved';
+    });
+  </script>
+</body>
+</html>

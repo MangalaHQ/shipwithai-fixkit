@@ -1,5 +1,29 @@
 # Changelog — shipwithai-fixkit-web
 
+## [0.2.0] — 2026-06-09
+
+### Added
+- **Framework-module contract** `lib/framework-module.contract.md` — a doc (no code, adapter stays
+  zero-dep) defining the 5 slots a web-framework module fills (`detect` / `runtime` / `source-map` /
+  `recipes` / `locate`). Splits the adapter into a framework-agnostic **platform spine**
+  (`web-reproduce` + `web-verify`) and the **Astro framework module** (`web-environment` = runtime,
+  `web-source-map` = source-map, `astro-recipes` = recipes). `locate` is reserved (Sprint 3 / B-LOC).
+- **New generic skill** `astro-recipes` (MIT, user-invocable) — framework-generic Astro UI-render fix
+  patterns (missing `client:*` hydration; unwired sibling `*.behavior.ts`; `<pre>` overflow), each
+  targeting a `web-harness` measure (`interaction` / `scroll-read-state` / `overflow`). Carries **no**
+  org/design-system specifics — an external overlay pack adds those on top of the `recipes` slot. These
+  recipes were extracted up from the private pack to make the engine genuinely generic.
+
+### Changed
+- **`CLAUDE.md` + `lib/capability.json` note:** declare the two non-overlapping skill groups and point
+  to the contract. `web-environment` / `web-source-map` reframed as the Astro module's runtime /
+  source-map slots — **wording only, no behavior change**. Capability tiers unchanged (UI/Logic/System
+  = FULL).
+
+### Notes
+- `web-environment`'s port-hygiene sub-part is flagged as a Step-2 extraction candidate (shared runtime
+  helper) — **not** split in this release.
+
 ## [0.1.0] — 2026-06-04
 
 ### Added

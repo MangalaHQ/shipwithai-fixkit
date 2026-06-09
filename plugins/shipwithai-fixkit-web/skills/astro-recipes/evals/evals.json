@@ -1,0 +1,48 @@
+{
+  "skillId": "astro-recipes",
+  "version": "0.2.0",
+  "evals": [
+    {
+      "id": "astro-recipes-01",
+      "prompt": "My React island in this Astro page renders but clicking it does nothing.",
+      "expectedBehavior": "Apply the generic Hydration (a) recipe: the island ships no client:* directive, so add client:load/client:visible at the usage site; reproduce + verify with the web-harness interaction measure (state changes after click).",
+      "category": "hydration-directive",
+      "shouldTrigger": true
+    },
+    {
+      "id": "astro-recipes-02",
+      "prompt": "This Astro component has a sibling .behavior.ts with an init function but the buttons stay inert on the page.",
+      "expectedBehavior": "Apply the generic Hydration (b) recipe: Astro does not auto-run island JS, so the consumer must wire the behavior once with a client <script> on a generic data-* hook; prove with the interaction (or scroll-read-state) harness measure.",
+      "category": "behavior-wiring",
+      "shouldTrigger": true
+    },
+    {
+      "id": "astro-recipes-03",
+      "prompt": "A code block on my Astro blog overflows and pushes the page sideways at 375px.",
+      "expectedBehavior": "Apply the generic Overflow recipe: a <pre> outside the prose container lacks overflow-x:auto; add the rule and verify scrollWidth <= clientWidth via the web-harness overflow measure.",
+      "category": "overflow",
+      "shouldTrigger": true
+    },
+    {
+      "id": "astro-recipes-04",
+      "prompt": "Give me the Astro recipe to hydrate an interactive island that does nothing on click.",
+      "expectedBehavior": "Trigger astro-recipes and return the generic hydration recipe (client:* directive / behavior-wiring), targeting the interaction harness measure.",
+      "category": "happy-path",
+      "shouldTrigger": true
+    },
+    {
+      "id": "astro-recipes-05",
+      "prompt": "Fix the @shipwithai/design ReactionsBar organism on shipwithai.io — wire initReactionsBar with the right import path.",
+      "expectedBehavior": "Do NOT trigger the generic astro-recipes — an org-specific design-system organism + import path is the private pack overlay's job (pack astro-recipes / design-consumer-routing), not the generic engine recipe.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    },
+    {
+      "id": "astro-recipes-06",
+      "prompt": "Which file should I look in for the code-block overflow bug on an Astro stack?",
+      "expectedBehavior": "Do NOT trigger astro-recipes — that is a symptom-to-source-location question (web-source-map), not a request for the fix recipe.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
+    }
+  ]
+}

@@ -13,9 +13,25 @@ a concrete web stack.
 - **Connector mappings** (`CONNECTORS.md`): each core `~~category` placeholder → a concrete web
   tool, with alternatives, via the `## If <connector> Available` idiom.
 - **Capability declaration** (`lib/capability.json`): UI / Logic / System = FULL on this stack.
-- **Per-layer recipes** (skills): `web-environment` (stand up the target), `web-reproduce`
-  (reproduce recipes), `web-verify` (verify recipes mirroring reproduce), `web-source-map`
-  (symptom → file hints on an Astro + content-collections stack).
+- **Per-layer recipes** (skills): `web-reproduce` (reproduce recipes), `web-verify` (verify recipes
+  mirroring reproduce), `web-environment` (stand up the target), `web-source-map` (symptom → file hints),
+  and `astro-recipes` (generic Astro UI-render fix patterns).
+
+## Framework-module contract (the seam)
+This adapter is organized around `lib/framework-module.contract.md` — a **doc** (no code) that splits
+the adapter into two non-overlapping halves. A second framework (Step 2) reuses the spine and
+re-implements the module.
+
+- **Platform spine — framework-AGNOSTIC:** `web-reproduce` + `web-verify` only (plus `CONNECTORS.md`,
+  `lib/capability.json`, and `handoff/v0` emission). These reference *the active framework module's*
+  `runtime` / `source-map` / `recipes` — never Astro by name.
+- **Astro framework module (first impl):** `web-environment` = the `runtime` slot, `web-source-map` =
+  the `source-map` slot, `astro-recipes` = the `recipes` slot. These MAY name Astro concretely — that is
+  their job. (`web-environment`'s port-hygiene sub-part is a Step-2 extraction candidate into a shared
+  runtime helper; it stays whole here.)
+
+`astro-recipes` is **framework-generic, not org-specific** — it carries no design-system import path or
+named organism; an external overlay pack adds that specialization on top of the `recipes` slot.
 
 ## The stack this adapter targets
 Astro + content-collections, served by `astro dev` on the canonical port **4321**. Live-UI proof

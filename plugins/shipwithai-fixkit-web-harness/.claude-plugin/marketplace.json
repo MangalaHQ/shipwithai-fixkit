@@ -10,7 +10,7 @@
     {
       "name": "shipwithai-fixkit-web-harness",
       "description": "Headless Playwright ~~browser binding: observes a live page and emits the 5 UI LAYER_METHODS with observed-number evidence. Pure mechanism — no debugging logic, that lives in core.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "ShipWithAI",
         "email": "support@shipwithai.com"
@@ -20,5 +20,5 @@
       "tags": ["bug-fix", "web", "harness", "playwright", "browser", "ui"]
     }
   ],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

@@ -72,6 +72,21 @@ section('1. measures.js pure helpers (method pinned to core LAYER_METHODS.UI)');
   assert(vBug.ok === false && vFix.ok === true, 'viewport polarity (one width overflows ->false)');
   assert(deepEq(vBug.evidence.failingWidths, ['375']), 'viewport evidence names the failing widths', JSON.stringify(vBug.evidence.failingWidths));
 
+  // scroll-read-state: scroll-then-read STATE — REUSES interaction-assertion (NO new METHOD key).
+  // With expected, ok iff after === expected (bug: state didn't reach expected after scroll).
+  const sBug = measures.scrollReadState({ ratio: 0.25, before: 'true', after: 'true', expected: 'false' });
+  const sFix = measures.scrollReadState({ ratio: 0.25, before: 'true', after: 'false', expected: 'false' });
+  assert(UI.includes(sBug.method), 'scrollReadState.method is a UI LAYER_METHOD', sBug.method);
+  assert(sBug.method === measures.METHOD.interaction, 'scrollReadState reuses interaction-assertion (no new method)', sBug.method);
+  assert(sBug.ok === false && sFix.ok === true, 'scrollReadState polarity (state not reached ->false; reached ->true)');
+  assert(sBug.evidence.ratio === 0.25 && sBug.evidence.before === 'true' && sBug.evidence.after === 'true', 'scrollReadState evidence carries ratio/before/after');
+  assert(sBug.evidence.expected === 'false', 'scrollReadState evidence carries expected', JSON.stringify(sBug.evidence));
+  // Without expected, ok iff state CHANGED after the scroll.
+  const sChanged = measures.scrollReadState({ ratio: 0.5, before: 'true', after: 'false' });
+  const sStuck = measures.scrollReadState({ ratio: 0.5, before: 'true', after: 'true' });
+  assert(sChanged.ok === true && sStuck.ok === false, 'scrollReadState no-expected polarity (changed ->true; unchanged ->false)');
+  assert(sChanged.evidence.expected === null, 'scrollReadState evidence.expected is null when absent', JSON.stringify(sChanged.evidence));
+
   // EVERY helper's method must be a member of UI LAYER_METHODS, and the 5 must be distinct.
   const emitted = Object.values(measures.METHOD);
   assert(emitted.every((m) => UI.includes(m)), 'every measures.METHOD value is in core LAYER_METHODS.UI', emitted.join(','));
@@ -194,6 +209,9 @@ section('5. Tier B — Playwright smoke (conditional)');
       ['interaction fixed', ['--url', fx('fixed.html'), '--measure', 'interaction', '--selector', '#save', '--target', '#status', '--expected', 'saved'], true],
       ['viewport broken',  ['--url', fx('broken.html'), '--measure', 'viewport', '--selector', '#code', '--widths', '1280,768,375'], false],
       ['viewport fixed',   ['--url', fx('fixed.html'),  '--measure', 'viewport', '--selector', '#code', '--widths', '1280,768,375'], true],
+      // scroll-read-state: reuses interaction-assertion; no --expected -> ok iff disabled flipped after the scroll.
+      ['scroll-read-state broken', ['--url', fx('broken.html'), '--measure', 'scroll-read-state', '--target', '#react', '--prop', 'disabled', '--ratio', '0.5'], false],
+      ['scroll-read-state fixed',  ['--url', fx('fixed.html'),  '--measure', 'scroll-read-state', '--target', '#react', '--prop', 'disabled', '--ratio', '0.5'], true],
     ];
     for (const [label, args, expectedOk] of cases) {
       const r = tryRun(args);
@@ -203,6 +221,9 @@ section('5. Tier B — Playwright smoke (conditional)');
     // failure shape: a bad selector exits non-zero with {ok:false,error} and NO method.
     const f = tryRun(['--url', fx('fixed.html'), '--measure', 'overflow', '--selector', '#does-not-exist']);
     assert(f.code !== 0 && f.out && f.out.ok === false && !f.out.method, 'smoke: missing selector -> non-zero + {ok:false,error}, no method', JSON.stringify(f.out));
+    // scroll-read-state shares the same failure discipline: missing --ratio -> non-zero, no method.
+    const fs2 = tryRun(['--url', fx('fixed.html'), '--measure', 'scroll-read-state', '--target', '#react']);
+    assert(fs2.code !== 0 && fs2.out && fs2.out.ok === false && !fs2.out.method, 'smoke: scroll-read-state missing --ratio -> non-zero + {ok:false,error}, no method', JSON.stringify(fs2.out));
   }
 }
 

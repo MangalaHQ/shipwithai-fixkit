@@ -31,6 +31,13 @@
       "shouldTrigger": true
     },
     {
+      "id": "browser-drive-07",
+      "prompt": "The reaction buttons' scroll-spy is broken — verify they enable once I scroll past 25% of the article by driving the browser.",
+      "expectedBehavior": "Invoke lib/drive.js --measure scroll-read-state --target <btn> --ratio 0.25 --prop disabled; scroll-then-read STATE, emitting interaction-assertion (ok:true when the state flips after the scroll).",
+      "category": "interaction",
+      "shouldTrigger": true
+    },
+    {
       "id": "browser-drive-05",
       "prompt": "Classify this bug and decide which layer it belongs to.",
       "expectedBehavior": "Do NOT trigger browser-drive — classification is core's triage, not the ~~browser mechanism. The harness only observes and reports numbers.",

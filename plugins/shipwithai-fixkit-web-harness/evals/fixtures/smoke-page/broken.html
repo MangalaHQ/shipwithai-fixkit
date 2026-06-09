@@ -28,10 +28,18 @@
   <button id="save">Save</button>
   <span id="status">idle</span>
 
+  <!-- scroll-read-state target: a reaction button that should ENABLE past 25% read.
+       BUG: no scroll listener -> it stays disabled no matter how far you scroll. -->
+  <button id="react" disabled>React</button>
+
+  <!-- tall spacer so the document is scrollable (scrollHeight > clientHeight). -->
+  <div style="height: 3000px"></div>
+
   <script>
     // BUG: emits a console error on load (console-assertion reproduces on its presence).
     console.error('hydration error: storage not allowed');
     // BUG: #save is intentionally unwired — clicking it does nothing (dead control).
+    // BUG: #react has no scroll-spy listener -> disabled never flips (scroll-read-state ok:false).
   </script>
 </body>
 </html>

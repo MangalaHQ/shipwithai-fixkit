@@ -33,13 +33,18 @@ node plugins/shipwithai-fixkit-web-harness/lib/drive.js --url <url> --measure <t
   fix-failure (feeds 3-strikes), never a close.
 - Prerequisite: Playwright (`npx playwright install chromium`) — see this plugin's `CLAUDE.md`.
 
-## The five measures (one per UI LAYER_METHOD)
+## The measures (six measures, five UI LAYER_METHODS)
+
+`scroll-read-state` adds **no** new method — it reuses `interaction-assertion`, so the harness still
+emits exactly the five UI `LAYER_METHODS` (a scroll-then-read is behaviorally a post-action state
+assertion, the same proof class as click-then-read).
 
 ```
 overflow        --selector <sel>                              -> dom-assertion
 computed-style  --selector <sel> --prop <p> [--expected <v>]  -> computed-style
 console         [--wait <ms>]                                 -> console-assertion
 interaction     --selector <sel> --target <sel> [--prop <p>] [--expected <v>] -> interaction-assertion
+scroll-read-state --target <sel> --ratio <0..1> [--scroller <sel>] [--prop <p>] [--expected <v>] [--wait <ms>] -> interaction-assertion
 viewport        --selector <sel> [--widths 1280,768,375]      -> browser-assertion
 ```
 
@@ -50,6 +55,12 @@ viewport        --selector <sel> [--widths 1280,768,375]      -> browser-asserti
   to `--expected` (or simply changed, if no `--expected`). `--prop` defaults to `textContent` and is
   bounded to a safe state allowlist (`textContent`/`innerText`/`value`/`checked`/`disabled`/
   `className`/`id`/`ariaLabel`) — never arbitrary element internals.
+- **scroll-read-state** — reads `--target`'s `--prop` at rest, scrolls `--scroller` (or the document
+  scrolling element) to `--ratio` of its scrollable height, waits `--wait` (default 400ms) for
+  `IntersectionObserver`/scroll listeners to settle, then re-reads; `ok` when the state reached
+  `--expected` (or simply changed, if no `--expected`). Emits `interaction-assertion` (no new method).
+  For scroll-spy / scroll-revealed UI whose proof is *scroll-then-read*. `--prop` shares the same
+  state allowlist as `interaction`.
 - **viewport** — re-measures overflow across `--widths`; `ok` when no width overflows.
 
 ## Example — reproduce then verify a code-block overflow

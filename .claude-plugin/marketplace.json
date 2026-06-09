@@ -34,7 +34,7 @@
     {
       "name": "shipwithai-fixkit-web-harness",
       "description": "The in-loop ~~browser binding for the fixkit engine: a thin headless Playwright runner that observes a live page and emits the 5 UI LAYER_METHODS with observed-number evidence, so UI bugs close autonomously at FULL. Pure mechanism — no debugging logic, that lives in core.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "ShipWithAI",
         "email": "support@shipwithai.com"

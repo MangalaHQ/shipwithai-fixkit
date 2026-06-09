@@ -21,8 +21,8 @@
     },
     {
       "name": "shipwithai-fixkit-web",
-      "description": "Thin web adapter for the fixkit engine: maps ~~connectors to concrete web tooling (Claude in Chrome, astro dev, node/vitest) and ships per-layer reproduce/verify/source-map recipes for an Astro + content-collections stack. No debugging logic — that lives in core.",
-      "version": "0.1.0",
+      "description": "Thin web adapter for the fixkit engine: maps ~~connectors to concrete web tooling (Claude in Chrome, astro dev, node/vitest) and ships per-layer reproduce/verify/source-map recipes plus generic Astro fix recipes for an Astro + content-collections stack. No debugging logic — that lives in core.",
+      "version": "0.2.0",
       "author": {
         "name": "ShipWithAI",
         "email": "support@shipwithai.com"

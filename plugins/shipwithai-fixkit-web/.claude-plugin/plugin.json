@@ -1,7 +1,7 @@
 {
   "name": "shipwithai-fixkit-web",
   "description": "Thin web adapter for the fixkit engine: maps the ~~connector placeholders to concrete web tooling (Claude in Chrome, astro dev, node/vitest), and ships per-layer reproduce/verify/source-map recipes for an Astro + content-collections stack. No debugging logic, no layer-agents, no orchestration — those live in core.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "ShipWithAI",
     "url": "https://shipwithai.io"
@@ -14,6 +14,7 @@
     "./skills/web-environment",
     "./skills/web-reproduce",
     "./skills/web-verify",
-    "./skills/web-source-map"
+    "./skills/web-source-map",
+    "./skills/astro-recipes"
   ]
 }

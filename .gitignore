@@ -10,3 +10,6 @@ package-lock.json
 # harness — local-only / observability output
 .claude/logs/
 .claude/settings.local.json
+
+# scratch gate-run scripts (Cowork real-machine proofs; never part of the engine PR)
+gate-run-*.sh

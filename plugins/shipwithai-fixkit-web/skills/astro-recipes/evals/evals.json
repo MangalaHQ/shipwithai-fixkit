@@ -1,6 +1,6 @@
 {
   "skillId": "astro-recipes",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "evals": [
     {
       "id": "astro-recipes-01",
@@ -19,7 +19,7 @@
     {
       "id": "astro-recipes-03",
       "prompt": "A code block on my Astro blog overflows and pushes the page sideways at 375px.",
-      "expectedBehavior": "Apply the generic Overflow recipe: a <pre> outside the prose container lacks overflow-x:auto; add the rule and verify scrollWidth <= clientWidth via the web-harness overflow measure.",
+      "expectedBehavior": "Apply the generic Overflow recipe: add overflow-x:auto on the <pre> to contain it, then verify with the web-harness overflow measure on the PAGE ROOT (--selector 'body') that the page no longer overflows sideways. The <pre> keeps overflow-x:auto and stays scrollWidth>clientWidth by design, so the proof is the page/container, NOT the <pre> itself.",
       "category": "overflow",
       "shouldTrigger": true
     },

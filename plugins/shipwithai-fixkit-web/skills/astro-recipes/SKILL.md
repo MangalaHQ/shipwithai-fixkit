@@ -1,7 +1,7 @@
 ---
 name: astro-recipes
 description: "Generic Astro UI-render fix recipes: client:* hydration, unwired *.behavior.ts, <pre> overflow — each targets a web-harness measure. Triggers: 'astro recipe', 'hydrate this island'."
-version: 0.2.0
+version: 0.2.1
 license: MIT
 user-invocable: true
 ---
@@ -23,7 +23,7 @@ component names on top of these — that specialization lives in the overlay, no
 |---|---|---|---|
 | interactive island is dead (clicks do nothing) | a React island ships no `client:*` directive | **Hydration (a)** | `interaction` |
 | interactive markup is dead, but a sibling `*.behavior.ts` exists | the consumer never wired the behavior (Astro does not auto-run island JS) | **Hydration (b)** | `interaction` / `scroll-read-state` |
-| code block / `<pre>` clips or scrolls the page sideways | a `<pre>` outside a prose container lacks `overflow-x:auto` | **Overflow** | `overflow` |
+| a `<pre>` overflows and pushes the **page** sideways | a `<pre>` outside a prose container lacks `overflow-x:auto` | **Overflow** | `overflow` on the page root (`body`) |
 
 ## Hydration (a) — a React island with no `client:*`
 
@@ -73,21 +73,26 @@ node plugins/shipwithai-fixkit-web-harness/lib/drive.js \
 # the button flips disabled true->false once the wired scroll-spy fires (ok:true after the fix)
 ```
 
-## Overflow — a `<pre>` outside a prose container
+## Overflow — a `<pre>` that pushes the page sideways
 
 A code-block `<pre>` rendered outside the prose/typography wrapper (e.g. a standalone snippet card)
-misses the body overflow rule and overflows its box on narrow viewports. Give it `overflow-x:auto`:
+misses the body overflow rule, so a long line **pushes the whole page sideways** on narrow viewports.
+Give the `<pre>` `overflow-x:auto` to **contain** the scroll (the code keeps its own horizontal scroll,
+no wrap):
 
 ```css
 .snippet :global(pre) { overflow-x: auto; }
 ```
 
-Reproduce + verify (`overflow`): `scrollWidth` vs `clientWidth` on the `<pre>`.
+Reproduce + verify (`overflow`) on the **page root** — the element that must not scroll sideways — **not**
+the `<pre>`. `overflow-x:auto` contains the overflow so the page root fits, but the `<pre>` itself stays
+`scrollWidth > clientWidth` **by design** (it scrolls its own code), so verifying on the `<pre>` can never
+go green. Select `body` (or `html`):
 
 ```sh
 node plugins/shipwithai-fixkit-web-harness/lib/drive.js \
-  --url http://localhost:4321/<route> --measure overflow --selector 'pre'
-# REPRODUCE expects ok:false (scrollWidth > clientWidth); VERIFY expects ok:true (<=)
+  --url http://localhost:4321/<route> --measure overflow --selector 'body'
+# REPRODUCE expects ok:false (the page overflows sideways); VERIFY expects ok:true (contained)
 ```
 
 ## How to use a recipe

@@ -1,5 +1,17 @@
 # Changelog — shipwithai-fixkit-web
 
+## [0.2.1] — 2026-06-10
+
+### Fixed
+- **`fix(astro-recipes)`: the Overflow recipe verifies on the page root, not the `<pre>`.** A real-browser
+  gate-run showed `overflow-x:auto` is the correct fix (the code keeps its own horizontal scroll, no
+  wrap) but it *contains* the overflow — the `<pre>` itself stays `scrollWidth > clientWidth` by design,
+  so verifying on `--selector 'pre'` could never go green. The recipe now reproduces/verifies the
+  `overflow` measure on the **page root** (`--selector 'body'`): REPRODUCE `ok:false` (page overflows),
+  VERIFY `ok:true` (contained). Recipe text + the recipe-index row + one eval (`astro-recipes-03`)
+  updated. **No mechanism change** — `lib/measures.js` / `drive.js` / the `overflow` measure are
+  untouched; only the recipe's *target selector* was wrong.
+
 ## [0.2.0] — 2026-06-09
 
 ### Added

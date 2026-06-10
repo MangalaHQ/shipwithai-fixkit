@@ -5,7 +5,7 @@ symptom lives in, debugs on a systematic spine, and **closes only on measured br
 a rendered bug never closes on a source diff.
 
 ## Prerequisites
-- Claude Code installed, Node 18+
+- Claude Code installed, Node 18+ (Playwright's supported floor)
 - An Astro project that runs locally (`npm run dev`)
 
 ## Install (one time)
@@ -16,19 +16,24 @@ In Claude Code:
     /plugin install shipwithai-fixkit-web@shipwithai-fixkit
     /plugin install shipwithai-fixkit-web-harness@shipwithai-fixkit
 
-Then install the harness browser (a prerequisite, not vendored):
+Then, **in your Astro project folder**, install the measurement runner's prerequisite — both the
+`playwright` package and the browser binary (neither is vendored):
 
+    npm install -D playwright
     npx playwright install chromium
 
 ## Fix a bug
-1. Start your dev server: `npm run dev`
+1. Start your dev server: `npm run dev` (the engine measures the live page; it expects the Astro
+   default `http://localhost:4321` — if your project serves elsewhere, put the URL in the bug
+   description).
 2. In Claude Code, run:
 
        /shipwithai-fixkit-core:fix <describe the bug — symptom, page URL, what you expected>
 
-3. The engine creates a ledger entry under `.fixkit/`, REPRODUCEs the bug with a live headless
-   measurement, finds the root cause, applies the fix, and re-runs the same measurement to
-   VERIFY. The bug closes at `capability_tier: FULL` only when the live number flips.
+3. The engine creates a ledger entry under `.fixkit/` (committed into your repo — that's the bug's
+   audit trail), REPRODUCEs the bug with a live headless measurement, finds the root cause, applies
+   the fix, and re-runs the same measurement to VERIFY. The bug closes at `capability_tier: FULL`
+   only when the live number flips.
 
 ## What proof looks like (real runs)
 - **Hydration bug** (component never becomes interactive): measure `interaction` —
@@ -38,7 +43,11 @@ Then install the harness browser (a prerequisite, not vendored):
   VERIFY `ok:true` (1280/1280). The `<pre>` keeps its own scrollbar by design.
 
 ## If something is missing
-No Playwright/runner available? The engine will not pretend: the integrity rule stops auto-close,
-the bug ends at `candidate` with a `handoff/v0` verification request instead of a fake `closed`.
+- Runner says `playwright not installed` even after the install step? The runner lives in the
+  plugin install, outside your project tree, so Node may not see your project's modules. Tell the
+  engine in the bug description to invoke the runner with your modules on the path:
+  `NODE_PATH=<your-project>/node_modules` (verified recipe).
+- No Playwright/runner at all? The engine will not pretend: the integrity rule stops auto-close,
+  the bug ends at `candidate` with a `handoff/v0` verification request instead of a fake `closed`.
 
 License: MIT.

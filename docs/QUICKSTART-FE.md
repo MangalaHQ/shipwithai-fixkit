@@ -14,7 +14,6 @@ In Claude Code:
     /plugin marketplace add MangalaHQ/shipwithai-fixkit
     /plugin install shipwithai-fixkit-core@shipwithai-fixkit
     /plugin install shipwithai-fixkit-web@shipwithai-fixkit
-    /plugin install shipwithai-fixkit-web-harness@shipwithai-fixkit
 
 Then, **in your Astro project folder**, install the measurement runner's prerequisite — both the
 `playwright` package and the browser binary (neither is vendored):
@@ -43,11 +42,9 @@ Then, **in your Astro project folder**, install the measurement runner's prerequ
   VERIFY `ok:true` (1280/1280). The `<pre>` keeps its own scrollbar by design.
 
 ## If something is missing
-- Runner says `playwright not installed` even after the install step? The runner lives in the
-  plugin install, outside your project tree, so Node may not see your project's modules. Tell the
-  engine in the bug description to invoke the runner with your modules on the path:
-  `NODE_PATH=<your-project>/node_modules` (verified recipe).
 - No Playwright/runner at all? The engine will not pretend: the integrity rule stops auto-close,
   the bug ends at `candidate` with a `handoff/v0` verification request instead of a fake `closed`.
+  (The runner resolves `playwright` from your project's folder — the install step above is all it
+  needs; run the engine from your project root.)
 
 License: MIT.

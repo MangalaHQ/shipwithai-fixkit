@@ -1,165 +1,185 @@
-# PLAN.md — Generic Astro fix harness, Step 1.1 (Overflow recipe verify-selector fix)
+# PLAN.md — Sprint 2: FE-developer quickstart (publish-readiness)
 
-> **Branch:** `phase-1/astro-overflow-verify-fix` in each repo · **Approver:** Ethan · **Status:** awaiting plan-in (ADR-0002 HALT).
-> **Author:** Claude Code. Supersedes the Step-1 plan (preserved in git history).
-> **Source brief:** `shipwithai-fixkit-design/handoffs/CC-GENERIC-ASTRO-HARNESS-STEP1.1-OVERFLOW-FIX.md`
-> (+ context `gate-run-step1.sh`). **Engine** off `main` (@ `0ced12e`, web 0.2.0 merged); **focus** off `master` (@ `c70feb1`, Step-1 merged).
+> **Branch:** `phase-1/fe-quickstart` off `main` @ `e9f58f9` · **Approver:** Ethan · **Status:** awaiting plan-in (ADR-0002 HALT).
+> **Author:** Claude Code. Supersedes the Step-1.1 plan (preserved in git history, merged as PR #10).
+> **Source brief:** CC handoff "Sprint 2: FE-developer quickstart" (Cowork, Session 7) — Sprint 2 of
+> `../shipwithai-fixkit-design/14-SPRINT-PLAN.md`.
 > **Deliverable this round:** this PLAN.md, then **HALT**. No production file edited until Ethan approves.
-> **ZERO engine-core / harness change** — this is **recipe text + one eval** only.
-
-This is a narrow correctness fix to ONE recipe, spanning the **engine** (public generic recipe) and the
-**focus pack** (overlay note) repos.
+> **ZERO engine-core / adapter / harness change** — docs + a read-only dry-run only. `git diff` must show
+> **nothing under `plugins/**`** (publish workflow must NOT fire).
 
 ---
 
-## 0. The finding (confirmed by a real-browser gate-run, 2026-06-10)
+## 0. Pre-verification (done before writing this plan, 2026-06-10)
 
-The generic `web/astro-recipes` **Overflow** recipe prescribes the right *fix* (`overflow-x:auto` on the
-`<pre>`) but tells the engine to reproduce/verify with the `overflow` measure on `--selector 'pre'`.
-Measured (200px box, 300-char line, headless Playwright via `gate-run-step1.sh` PART A):
+Every command/name in the Cowork quickstart draft was checked against the actual repo:
 
-| variant | `--selector 'pre'` | `--selector 'body'` |
+| Claim in draft | Verified against | Result |
 |---|---|---|
-| buggy (no rule) | ok:false (sw 2442 / cw 200) | ok:false (sw 2443 / cw 1280) |
-| **fix `overflow-x:auto`** | **ok:false (sw 2442 / cw 200)** | **ok:true (sw 1280 / cw 1280)** |
-| fix `white-space:pre-wrap` | ok:true (200/200) | ok:true |
+| `/plugin marketplace add MangalaHQ/shipwithai-fixkit` | `git remote -v` + `gh repo view` → `MangalaHQ/shipwithai-fixkit`, **PUBLIC** | ✅ |
+| Marketplace name `shipwithai-fixkit` | root `.claude-plugin/marketplace.json` `"name"` | ✅ |
+| Plugin names `-core` / `-web` / `-web-harness` (+ `@shipwithai-fixkit`) | root marketplace `plugins[]` | ✅ |
+| `/shipwithai-fixkit-core:fix` | `plugins/shipwithai-fixkit-core/commands/fix.md` header | ✅ |
+| `npx playwright install chromium` | web-harness `README.md:28` + `skills/browser-drive/SKILL.md:34` | ✅ |
+| `capability_tier: FULL` | `lib/ledger.schema.md:23` (`FULL \| ASSIST \| NONE`) | ✅ |
+| Integrity rule → `candidate` + `handoff/v0` (no fake close) | `commands/fix.md` steps 9/11 | ✅ |
+| Proof shapes: interaction 0→1; overflow body sw 2443/cw 1280 → 1280/1280 | gate-run records + merged PR #10 framing | ✅ |
+| Versions core 0.3.0 / web 0.2.1 / web-harness 0.2.0 | root marketplace.json | ✅ |
+| `lib/pattern-miner.js` exists; `../shipwithai.io/.fixkit` mounted (5 BUG ledgers) | `ls` | ✅ both |
 
-`overflow-x:auto` is the **correct** fix (code keeps horizontal scroll, no wrap) — it **contains** the
-overflow so the **page root no longer scrolls sideways** (`body` 1280 = 1280). But the `<pre>` itself
-stays `scrollWidth > clientWidth` **by design**, so verifying on the `<pre>` can never go green.
-**The recipe's reproduce/verify *target* is wrong, not the fix, and not the measure.**
+### ⚠️ Deviations from the handoff — need Ethan's ruling at plan-in
 
-**Root invariant for this change:** the `overflow` measure (`lib/measures.js` `overflow()` reads
-`scrollWidth`/`clientWidth` on the selected element) is **correct and untouched** — we only change which
-element the recipe tells the engine to *select*.
-
----
-
-## 1. ENGINE — `shipwithai-fixkit/plugins/shipwithai-fixkit-web/` (branch `phase-1/astro-overflow-verify-fix` off `main`)
-
-**EDIT — `skills/astro-recipes/SKILL.md`, the Overflow recipe only (current lines ~76-91):**
-- **Keep** the fix `overflow-x:auto` (the CSS block unchanged).
-- **Reframe the symptom:** "a `<pre>` overflows and **pushes the page sideways**; the fix *contains* it
-  so the **page root** no longer overflows" (the `<pre>` keeps horizontal scroll by design).
-- **Change reproduce/verify target** from the `<pre>` to the document root that must not scroll sideways:
-  `--measure overflow --selector 'body'` (generic; `'html'` equivalent). REPRODUCE `ok:false` on `body`
-  (page overflows), VERIFY `ok:true` on `body` (contained).
-- **Update the CLI example block** accordingly (`--selector 'body'`; REPRODUCE ok:false / VERIFY ok:true
-  on body).
-- **Update the recipe-index row** (current line 26): keep measure `overflow`, but reframe the symptom
-  cell to the page-root framing ("…pushes the page sideways → verify the page root no longer overflows").
-- Mirror principle preserved (reproduce & verify the **same** selector — now `body`). Hydration (a)/(b)
-  recipes are correct and **unchanged**. Keep < 200 lines, code blocks ≤ 20, the closing NOT-section.
-
-**EDIT — `skills/astro-recipes/evals/evals.json` (one eval):**
-- Adjust `astro-recipes-03` (the overflow eval) so it asserts the **page-root** verify: add
-  `overflow-x:auto` on the `<pre>`, then verify on `--selector 'body'` that the page no longer overflows
-  sideways — noting the `<pre>` keeps `scrollWidth > clientWidth` by design (so the proof is the
-  page/container, **not** the `<pre>`). This also satisfies "remove any eval that implies verifying the
-  `<pre>` itself for this fix" (only `-03` does). Keep `shouldTrigger:true`.
-- Eval count stays **6** (4 trigger / 2 must-not) — still ≥ 5 with the ≥3/≥2 split. Bump the evals.json
-  `version` to `0.2.1` in lockstep (cosmetic).
-
-**EDIT — version bump web `0.2.0 → 0.2.1` (patch) + 4-key sync** (gate section 4 requires all equal):
-1. `.claude-plugin/plugin.json` → `version`
-2. `.claude-plugin/marketplace.json` → top-level `version`
-3. same file → `plugins[0].version`
-4. root `.claude-plugin/marketplace.json` → the `shipwithai-fixkit-web` entry `version`
-
-**EDIT — `CHANGELOG.md`** — add `## [0.2.1] — 2026-06-10`:
-> `fix(astro-recipes): overflow recipe verifies on the page root, not the <pre> — overflow-x:auto
-> contains the overflow but the <pre> stays scrollWidth>clientWidth by design.`
+1. **Handoff Task 2's URL fix is a no-op on the root README.** The root `README.md` (55 lines)
+   contains **no** `github.com/shipwithai/...` link. The wrong-org URLs actually live in **8 files
+   under `plugins/**`**: the `"repository"` field of all 7 `plugin.json` files +
+   `plugins/shipwithai-fixkit-web-harness/README.md:3`. The DoD forbids any diff under
+   `plugins/**`, and `plugin.json` edits sit on the `publish-plugin.yml` path filter.
+   → **Proposal: DEFER** the 8 URL fixes to each plugin's next version-bump PR; record as a
+   follow-up in the completion report. This sprint changes no URL (nothing to fix in scope).
+2. **Root README has Phase-0-era drift** (same file as the cross-link task, docs-only): it claims
+   the five adapters "are intentionally not present yet" and its repo-layout tree shows only
+   `core`. → **Proposal: fix minimally** while in the file (exact diff in Task 2). Decline = drop
+   step 2.3; the cross-link stands alone.
+3. **`.claude/agents/drift-monitor.md` has no pin reference today** — handoff Task 3 is therefore
+   an **addition** of a pin note, not an update (proposed text in Task 3).
 
 ---
 
-## 2. FOCUS — `shipwithai-fixkit-focus/plugins/shipwithai-fixkit-pack/` (branch `phase-1/astro-overflow-verify-fix` off `master`)
+## 1. Tasks
 
-**EDIT — `packs/shipwithai/astro-recipes.md` (one line, ~line 41):** it currently restates a `<pre>`-verify
-target — *"Verify (UI): the web-harness / Cowork measures `scrollWidth <= clientWidth` on the `pre` …"*.
-Realign to the page-root approach (or defer to the generic recipe): verify the **page root** no longer
-overflows (`--selector 'body'`); the `<pre>` keeps `overflow-x:auto` and stays wider-than-box by design.
-Org specifics stay: `.article-body`, org tokens `--radius-md` / `--space-4`, Expressive Code ownership.
+### Task 0 — Branch + plan commit
+- [ ] 0.1 `git checkout -b phase-1/fe-quickstart e9f58f9`
+- [ ] 0.2 `git add PLAN.md && git commit -m "docs(phase-1): PLAN.md — Sprint 2 FE quickstart"`
+      (do **not** add the stray untracked `SHA` file at repo root — not ours).
 
-**CHECK — `skills/astro-recipes/SKILL.md`:** its Snippet-overflow note gives only the CSS rule + org
-tokens (no verify selector) — **no change needed**; it already inherits the verify approach via the
-"Overlays `web/astro-recipes`" reference.
+### Task 1 — `docs/QUICKSTART-FE.md` (create)
+- [ ] 1.1 Create with the Cowork §2 draft **verbatim except one wording fix**: step-3 sentence
+      "…applies the fix, and VERIFIEs on the same measurement" → "…applies the fix, and re-runs
+      the same measurement to VERIFY". All commands, plugin names, proof numbers, and the
+      integrity-rule paragraph stay exactly as drafted (all verified in §0). Full final content:
 
-**DO NOT TOUCH** — `hard-locks`, `design-consumer-routing`, `component-map.seed`, `env-hygiene`,
-ReactionsBar hydration bindings.
+````markdown
+# Quickstart — fix front-end bugs on your Astro project
 
-**Pack version — decision (default = NO bump):** this is a one-line **doc clarification** with zero
-behavior/structure change, and the corrected recipe is carried by the engine pin (web 0.2.1). Default =
-ship the note alignment **version-unchanged** (pack stays `0.1.1`; pack 4-key only fails on a *mismatch*,
-not on staying put), with a one-line CHANGELOG clarification under `[0.1.1]`. _Alternative_ = patch bump
-`0.1.1 → 0.1.2` (full 4-key) if Ethan prefers a discrete release for the overlay edit. **HALT-flagged (§6.1).**
+`shipwithai-fixkit` is a bug-fix engine for Claude Code: it classifies a bug by the layer its
+symptom lives in, debugs on a systematic spine, and **closes only on measured browser proof** —
+a rendered bug never closes on a source diff.
 
-## 2C. POST-MERGE re-pin (separate commit — needs the engine 0.2.1 merge SHA, Ethan)
-After the **engine** PR merges, re-pin focus root `.claude-plugin/marketplace.json`: the
-`shipwithai-fixkit-web` entry `sha` → new merge commit, `version` `0.2.0 → 0.2.1`; update `_pin_note`
-(date, new SHA, "web 0.2.1: overflow recipe verifies on the page root"). `core` stays `0.3.0`; **decision
-(§6.2):** align core's `sha` to the same new commit (content byte-identical — the Step-1 precedent) vs.
-leave it. _Recommend: align both, single engine SHA._ Not part of the note-alignment commit (SHA doesn't
-exist until merge). Sequenced last.
+## Prerequisites
+- Claude Code installed, Node 18+
+- An Astro project that runs locally (`npm run dev`)
+
+## Install (one time)
+In Claude Code:
+
+    /plugin marketplace add MangalaHQ/shipwithai-fixkit
+    /plugin install shipwithai-fixkit-core@shipwithai-fixkit
+    /plugin install shipwithai-fixkit-web@shipwithai-fixkit
+    /plugin install shipwithai-fixkit-web-harness@shipwithai-fixkit
+
+Then install the harness browser (a prerequisite, not vendored):
+
+    npx playwright install chromium
+
+## Fix a bug
+1. Start your dev server: `npm run dev`
+2. In Claude Code, run:
+
+       /shipwithai-fixkit-core:fix <describe the bug — symptom, page URL, what you expected>
+
+3. The engine creates a ledger entry under `.fixkit/`, REPRODUCEs the bug with a live headless
+   measurement, finds the root cause, applies the fix, and re-runs the same measurement to
+   VERIFY. The bug closes at `capability_tier: FULL` only when the live number flips.
+
+## What proof looks like (real runs)
+- **Hydration bug** (component never becomes interactive): measure `interaction` —
+  REPRODUCE `ok:false` (click count 0→0) → fix `client:load` → VERIFY `ok:true` (count 0→1).
+- **Overflow bug** (a `<pre>` pushes the page sideways): measure `overflow` on the **page root** —
+  REPRODUCE `ok:false` (body scrollWidth 2443 / clientWidth 1280) → fix `overflow-x:auto` →
+  VERIFY `ok:true` (1280/1280). The `<pre>` keeps its own scrollbar by design.
+
+## If something is missing
+No Playwright/runner available? The engine will not pretend: the integrity rule stops auto-close,
+the bug ends at `candidate` with a `handoff/v0` verification request instead of a fake `closed`.
+
+License: MIT.
+````
+
+- [ ] 1.2 Commit: `docs(phase-1): QUICKSTART-FE — FE-developer quickstart for the Astro harness`
+
+### Task 2 — README cross-link (+ drift fix per Deviation 2)
+**File:** root `README.md` only.
+- [ ] 2.1 Insert as its own paragraph right after the opening blockquote (after line 4):
+
+  ```markdown
+  **Front-end dev with an Astro project?** Start at [docs/QUICKSTART-FE.md](docs/QUICKSTART-FE.md).
+  ```
+- [ ] 2.2 URL fix: **none in this file** (Deviation 1 — deferred follow-up under `plugins/**`).
+- [ ] 2.3 *(drop if Deviation 2 declined)* Replace the stale adapters paragraph (lines 24–25)
+      with: `The five platform adapters (`web`, `backend`, `kmp`, `android`, `ios`) and the
+      web-harness ship alongside the core; the ShipWithAI org pack lives in the sibling repo
+      `shipwithai-fixkit-focus`.` — and in the repo-layout tree, change the single `plugins/` leaf
+      to two lines: `├── shipwithai-fixkit-core/ # the engine` and
+      `└── shipwithai-fixkit-{web,web-harness,backend,kmp,android,ios}/ # adapters + harness`.
+- [ ] 2.4 Commit: `docs(phase-1): README — cross-link FE quickstart, refresh adapter layout note`
+
+### Task 3 — drift-monitor pin note (addition)
+**File:** `.claude/agents/drift-monitor.md`.
+- [ ] 3.1 Append to the `## Context` → "Reads on startup" list:
+
+  ```markdown
+  - Cross-repo pin: focus `master` (`../shipwithai-fixkit-focus`) pins engine `main` @ `e9f58f9`
+    (web 0.2.1) in **GitHub-URL form** (`MangalaHQ/shipwithai-fixkit`); migration off the interim
+    `file://` pin is DONE (2026-06-10), verified by focus `check-engine-pins`. If engine `main`
+    moves, flag the focus pin as drift — report only, never edit it.
+  ```
+- [ ] 3.2 Commit: `docs(phase-1): drift-monitor — record focus→engine pin (main @ e9f58f9, GitHub-URL form)`
+
+### Task 4 — Pattern-miner dry-run (B-PAT scout, READ-ONLY)
+No file created. **No playbook entry — that is Sprint 10.**
+- [ ] 4.1 `node plugins/shipwithai-fixkit-core/lib/pattern-miner.js ../shipwithai.io/.fixkit --json`
+      (ledger dir confirmed mounted, 5 BUG ledgers). Capture stdout.
+- [ ] 4.2 Read-only proof: `git -C ../shipwithai.io status --short` unchanged by the run.
+- [ ] 4.3 Report whether a real recurring pattern surfaces (plausible candidate: BUG-004/BUG-005
+      both in ReactionsBar scope) — or SKIP + reason if the run errors.
+
+### Task 5 — Gates
+- [ ] 5.1 `cd plugins/shipwithai-fixkit-core && node tests/run-all.js` → exit 0.
+- [ ] 5.2 `node plugins/shipwithai-fixkit-web-harness/tests/run-all.js` → exit 0.
+- [ ] 5.3 `git diff main --stat -- plugins/` → **empty** (no bump, publish must not fire).
+
+### Task 6 — Critic clean-room follow (worker ≠ grader)
+- [ ] 6.1 Dispatch a **fresh critic subagent** (no access to this session's assumptions) to refute
+      `docs/QUICKSTART-FE.md` by following it literally: re-resolve the marketplace add target
+      (public repo by that exact name?), each `/plugin install` name + `@shipwithai-fixkit`
+      suffix, the `/shipwithai-fixkit-core:fix` exposure in `commands/fix.md`, whether
+      `npx playwright install chromium` is sufficient per the web-harness docs on a clean machine,
+      and any hidden assumption a stranger would hit (Node version, dev-server port, `.fixkit/`
+      creation).
+- [ ] 6.2 Every deviation found = a doc fix, not a footnote: amend + re-run the critic until
+      clean. Commit: `docs(phase-1): QUICKSTART-FE — critic fixes: <list>`.
+
+### Task 7 — Completion report → HALT
+- [ ] 7.1 Report: commit list, both gate outputs, empty-`plugins/` diff proof, critic verdict,
+      pattern-miner findings (or SKIP reason), deferred wrong-org-URL follow-up. **Ethan reviews
+      + pushes/PRs — CC never pushes.**
 
 ---
 
-## 3. Sequencing (cross-repo)
-1. **ENGINE** branch off `main` → §1 → run gates (§4.1) green → conventional commit → **HALT; Ethan
-   pushes + PR + merges.**
-2. **FOCUS** branch off `master` → §2 note alignment (+ optional bump) → pack gate (§4.2) green → commit →
-   **HALT; Ethan pushes + PR.**
-3. **POST-MERGE** (engine 0.2.1 merged) → §2C re-pin on the focus branch → pack gate green → Ethan merges.
-4. **GATE-RUN** (§4.3): Cowork re-runs `gate-run-step1.sh` (real machine) — overflow now verifies on `body`.
+## 2. Definition of Done (handoff §4, re-scoped per Deviation 1)
+- `docs/QUICKSTART-FE.md` committed; README cross-link in the same branch.
+- Critic clean-room follow passed (or doc amended until it does).
+- Both gates exit 0; `git diff` shows **NOTHING under `plugins/**`**.
+- drift-monitor pin note current; pattern-miner dry-run output (or SKIP reason) in the report.
+- Branch `phase-1/fe-quickstart`, conventional commits; Ethan reviews + pushes/PRs.
 
----
+## 3. What this plan does NOT do
+- No engine/adapter/harness code or version changes; **no edits under `plugins/**`** — including
+  the 8 wrong-org `repository` URLs (deferred to per-plugin version-bump PRs).
+- No playbook entry (Sprint 10); no consumer-repo (`shipwithai.io`) edits — BUG-005/GAP-A/GAP-B
+  are separate threads.
 
-## 4. Gate / test commands & acceptance (evidence, not assertions — handoff §2)
-
-### 4.1 Engine gates (from the engine repo root)
-- `node plugins/shipwithai-fixkit-web/tests/run-all.js` → exit 0.
-- `node plugins/shipwithai-fixkit-web-harness/tests/run-all.js` → exit 0 (Tier A; Tier B SKIPs w/o Playwright).
-- `node plugins/shipwithai-fixkit-core/tests/run-all.js` → exit 0.
-- **Core trust-anchor byte-unchanged:** `git diff --stat main -- plugins/shipwithai-fixkit-core/lib plugins/shipwithai-fixkit-core/tests` → **empty**.
-- **Harness untouched:** `git diff --stat main -- plugins/shipwithai-fixkit-web-harness/lib` → **empty**
-  (no `measures.js` / `drive.js` / overflow-measure change).
-
-### 4.2 Pack gate (from the focus repo root)
-- `node plugins/shipwithai-fixkit-pack/tests/run-all.js` → exit 0. Quality matrix ≥ 8.0.
-
-### 4.3 Gate-run re-run (Cowork, real machine — `gate-run-step1.sh`)
-- **PART A (Overflow):** with the corrected recipe, the proof binds on `--selector 'body'` →
-  REPRODUCE `ok:false` (page overflows) / VERIFY `ok:true` (contained), matching the §0 table. The
-  `<pre>`-selector numbers are reported as the *why* (stays `ok:false` by design), not the proof.
-- **PART B (Hydration):** closes **FULL** unchanged (reproduce `ok:false` → `client:load` → verify
-  `ok:true`).
-
-### 4.4 Critic refute pass (fresh subagent, worker ≠ grader)
-- Does **any** recipe still tell the engine to verify the **wrapped/scrolling element itself** for a
-  containment fix? (grep the Overflow recipe + the pack overlay note for a `<pre>`/`#pre`-verify target).
-- Is the Overflow example **internally consistent** — does applying the named fix make the **named
-  measure on the named selector** go green (fix ⇒ `body` `ok:true`)?
-- Are core/trust-anchor + harness diffs empty?
-
----
-
-## 5. Scope — what Step 1.1 does NOT do (handoff §3)
-- **No change to `lib/measures.js` / `drive.js` / the `overflow` measure semantics** — the measure is
-  correct; only the recipe's *target* was wrong.
-- No core / trust-anchor change · no new recipe classes · no plugin split / rename.
-- **No other recipe touched** — Hydration (a)/(b) are correct as-is; only Overflow changes.
-
----
-
-## 6. Decisions (APPROVED — Ethan via Cowork, 2026-06-10)
-1. **Pack version:** **PATCH BUMP `0.1.1 → 0.1.2`** ✓ — full 4-key + a **discrete** CHANGELOG `[0.1.2]`
-   entry. Do **NOT** retroactively edit the `[0.1.1]` entry (released versions are immutable).
-2. **§2C re-pin:** **align BOTH** core + web pins to the new engine 0.2.1 merge SHA (single engine SHA) ✓.
-
-**Housekeeping (approved):** `gate-run-step1.sh` is untracked scratch in the engine root — do **NOT**
-`git add` it; ignored via `.gitignore` (`gate-run-*.sh`) so it never lands in the public engine PR. The
-engine changed-set is kept to: the Overflow recipe + its eval + web version/4-key/CHANGELOG (+ the
-`.gitignore` housekeeping line).
-
-**Execution:** ENGINE runs autonomously to green gates (incl. core trust-anchor + harness `lib/` diffs
-empty), then **HALT** for Ethan's push/PR. FOCUS (note realign + `0.1.2` bump, then post-merge re-pin)
-follows.
+## 4. Decisions needed from Ethan at plan-in
+1. **Deviation 1** — defer the 8 wrong-org URLs under `plugins/**`? *(recommend: yes, defer)*
+2. **Deviation 2** — include the minimal README adapters-paragraph drift fix (step 2.3)?
+   *(recommend: yes, include)*

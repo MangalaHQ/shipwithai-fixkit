@@ -23,6 +23,10 @@ actual repository state. Prevents stale documentation from misleading future Cla
 - `plugins/shipwithai-fixkit-core/manifest.json` — declared skill registry
 - `plugins/shipwithai-fixkit-core/.claude-plugin/{plugin,marketplace}.json` + root marketplace.json
 - `plugins/shipwithai-fixkit-core/lib/ledger-validator.js` + `commands/fix.md`
+- Cross-repo pin: focus `master` (`../shipwithai-fixkit-focus`) pins engine `main` @ `e9f58f9`
+  (web 0.2.1) in **GitHub-URL form** (`MangalaHQ/shipwithai-fixkit`); migration off the interim
+  `file://` pin is DONE (2026-06-10), verified by focus `check-engine-pins`. If engine `main`
+  moves, flag the focus pin as drift — report only, never edit it.
 
 ## Steps
 

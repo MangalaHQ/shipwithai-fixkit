@@ -3,6 +3,8 @@
 > The reusable, stack-agnostic **bug-fix engine** of the `shipwithai-fixkit` family. Public/MIT.
 > Knows nothing ShipWithAI-specific (that lives in the sibling repo `shipwithai-fixkit-focus`).
 
+**Front-end dev with an Astro project?** Start at [docs/QUICKSTART-FE.md](docs/QUICKSTART-FE.md).
+
 Fixkit classifies a bug by the **layer its symptom lives in** (UI / Logic / System), debugs it on
 a vendored **systematic-debugging spine**, and closes it only on **layer-appropriate proof** — a
 rendered bug never closes on a source diff. The Iron Law (no fix before root cause), the integrity
@@ -18,11 +20,12 @@ shipwithai-fixkit/
 ├── NOTICE                                    # vendored-spine attribution (MIT (c) 2025 Jesse Vincent)
 ├── docs/adr/                                 # ADR-0001..0004
 └── plugins/
-    └── shipwithai-fixkit-core/              # the engine (Phase 0)
+    ├── shipwithai-fixkit-core/              # the engine
+    └── shipwithai-fixkit-{web,web-harness,backend,kmp,android,ios}/  # adapters + harness
 ```
 
-The five platform adapters (`web`, `backend`, `kmp`, `android`, `ios`) and the ShipWithAI pack are
-**Phase 1+** and are intentionally not present yet.
+The five platform adapters (`web`, `backend`, `kmp`, `android`, `ios`) and the web-harness ship
+alongside the core; the ShipWithAI org pack lives in the sibling repo `shipwithai-fixkit-focus`.
 
 ## `shipwithai-fixkit-core`
 

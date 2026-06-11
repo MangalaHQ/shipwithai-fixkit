@@ -90,6 +90,15 @@ re-derived from a fresh `grep -rn "web-harness"` AND `grep -rn "shipwithai-fixki
 sweep run BEFORE commit 1 and re-run AFTER all edits (must be zero live hits) — the grep drives the
 sweep, the table only predicts it. The sweep runs before the `git rm -r` of the harness dir.
 
+**Execution note (commit ⑤, grep-authority deviation):** the md/json/js-filtered grep missed
+`.github/workflows/harness-smoke.yml` (Tier C), which ran the DELETED harness gate path and pinned
+`pull_request.paths` to the deleted plugin — left alone, the PR's own CI breaks and the Tier-C smoke
+goes dark forever. Handoff §2.3 mandates a repo-wide reference sweep (no extension filter), so this
+IS a reference site; retargeted to `plugins/shipwithai-fixkit-web/**` + the merged gate in its own
+clearly-labeled commit (easy for Ethan to drop). The workflow's NODE_PATH mechanism (CI-side, not
+the user-facing remediation) was re-verified against the new cwd-first drive.js with a stub:
+fallback resolution still honors NODE_PATH when the invoking cwd has no node_modules.
+
 Out of scope (per handoff §5): the other 5 wrong-org URLs (core/backend/kmp/android/ios plugin.json),
 focus-pack re-pin, stub adapters, design repo, shipwithai.io.
 

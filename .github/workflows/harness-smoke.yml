@@ -1,15 +1,16 @@
-name: Web-harness Playwright smoke (Tier C)
+name: Web runner Playwright smoke (Tier C)
 
-# Tier C (split-gate, plan §6): the default plugin gate (validate-plugin.yml) runs the harness
-# tests/run-all.js with Playwright ABSENT, so its Tier-B smoke SKIPs and CI stays zero-dependency
-# deterministic. THIS job installs Playwright and runs the SAME gate with the browser present, so
-# the live runner is actually exercised in CI — but only on changes to the harness plugin. It does
-# not gate other plugins and never affects the deterministic default green.
+# Tier C (split-gate, plan §6): the default plugin gate (validate-plugin.yml) runs the web
+# adapter's tests/run-all.js with Playwright ABSENT, so its Tier-B smoke SKIPs and CI stays
+# zero-dependency deterministic. THIS job installs Playwright and runs the SAME gate with the
+# browser present, so the live runner is actually exercised in CI — but only on changes to the
+# web plugin (which bundles the runner since 0.3.0). It does not gate other plugins and never
+# affects the deterministic default green.
 
 on:
   pull_request:
     paths:
-      - 'plugins/shipwithai-fixkit-web-harness/**'
+      - 'plugins/shipwithai-fixkit-web/**'
       - '.github/workflows/harness-smoke.yml'
   workflow_dispatch: {}
 
@@ -33,9 +34,11 @@ jobs:
           npm install playwright@1.60.0
           npx playwright install --with-deps chromium
 
-      - name: Run the harness gate (Tier A + live Tier B)
+      - name: Run the web gate (deterministic tiers + live Tier B)
         env:
-          # Resolve the out-of-tree Playwright to the zero-package-json plugin (same trick used to
-          # prove the runner locally). Absent this, the gate would SKIP Tier B and still pass.
+          # Resolve the out-of-tree Playwright for the zero-package-json repo. The gate's
+          # run-or-skip probe is a plain require.resolve, which honors NODE_PATH; drive.js itself
+          # tries the invoking cwd first (no node_modules at the checkout root here) and falls back
+          # to the same NODE_PATH resolution. Absent this, the gate would SKIP Tier B and still pass.
           NODE_PATH: /tmp/pw/node_modules
-        run: node plugins/shipwithai-fixkit-web-harness/tests/run-all.js
+        run: node plugins/shipwithai-fixkit-web/tests/run-all.js

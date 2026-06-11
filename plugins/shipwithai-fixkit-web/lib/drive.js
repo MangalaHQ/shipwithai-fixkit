@@ -51,9 +51,19 @@ async function main() {
   if (!args.measure) return fail('missing --measure');
   const timeout = Number(args.timeout || 15000);
 
+  // Resolve `playwright` from the TARGET project's cwd FIRST — the engine invokes the runner
+  // from the project root, where the prerequisite is installed — then fall back to normal
+  // resolution (a dev box where playwright resolves globally). cwd-first is load-bearing: it is
+  // what lets the project-local install win, and what the gate's stub-resolution check bites on.
   let playwright;
-  try { playwright = require('playwright'); }
-  catch (e) { return fail('playwright not installed (run: npx playwright install chromium)'); }
+  try {
+    let resolved;
+    try { resolved = require.resolve('playwright', { paths: [process.cwd()] }); }
+    catch (e) { resolved = require.resolve('playwright'); }
+    playwright = require(resolved);
+  } catch (e) {
+    return fail('playwright not installed — in the target project run: npm install -D playwright && npx playwright install chromium');
+  }
 
   let browser;
   try {

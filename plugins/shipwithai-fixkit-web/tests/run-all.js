@@ -12,10 +12,13 @@
 //   3. measures.js unit test   (method strings pinned against core LAYER_METHODS.UI)
 //   4. cross-plugin contract   (a harness-shaped ledger PASSES core validateLedger; a
 //                               drifted-method twin is REJECTED with VERIFICATION_LAYER_MISMATCH)
-//   5. convention linters      (>=4 skills; <200 lines; "What this ... does NOT do"; fenced <=20;
+//   5. playwright cwd-resolution (drive.js resolves `playwright` from the TARGET project's cwd,
+//                               cwd tried FIRST; clear install message when absent — zero-dep,
+//                               proven with a throwing stub package in a temp cwd)
+//   6. convention linters      (>=4 skills; <200 lines; "What this ... does NOT do"; fenced <=20;
 //                               description <200; >=1 user-invocable:false; evals >=5 with 3/2 split)
-//   6. 4-key version sync      (plugin.json == per-plugin mkt top == plugins[0] == root mkt entry)
-//   7. Tier B — CONDITIONAL Playwright smoke. Runs only if `playwright` resolves (plain
+//   7. 4-key version sync      (plugin.json == per-plugin mkt top == plugins[0] == root mkt entry)
+//   8. Tier B — CONDITIONAL Playwright smoke. Runs only if `playwright` resolves (plain
 //      require.resolve — deliberately NOT cwd-aware, so the deterministic SKIP is stable);
 //      otherwise SKIPs. The gate's green NEVER depends on Tier B.
 
@@ -139,8 +142,53 @@ section('4. cross-plugin contract (harness-shaped ledger vs core validateLedger)
   assert(!rd.ok && mism, 'drifted-method twin is REJECTED with VERIFICATION_LAYER_MISMATCH', JSON.stringify(rd.violations));
 }
 
-// 5. CONVENTION + EVAL-SCHEMA LINTERS (BLOCKING) ----------------------------
-section('5. Convention + eval-schema linters');
+// 5. PLAYWRIGHT CWD-RESOLUTION — the (b) fix, tests-first (zero-dep) --------
+section('5. playwright cwd-resolution (drive.js resolves from the target project cwd)');
+{
+  const os = require('os');
+  const drivePath = path.join(ROOT, 'lib', 'drive.js');
+  const driveSrc = fs.readFileSync(drivePath, 'utf8');
+
+  // (1) Behavioral stub bite: a `playwright` package living in the INVOKING CWD's node_modules
+  // must be the one drive.js loads. The stub's chromium.launch() throws a marker; if the runner
+  // resolved playwright any other way (plugin dir, global), the marker can never appear.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fixkit-pw-stub-'));
+  try {
+    const stubDir = path.join(tmp, 'node_modules', 'playwright');
+    fs.mkdirSync(stubDir, { recursive: true });
+    fs.writeFileSync(path.join(stubDir, 'package.json'),
+      JSON.stringify({ name: 'playwright', version: '0.0.0-fixkit-stub', main: 'index.js' }));
+    fs.writeFileSync(path.join(stubDir, 'index.js'),
+      "module.exports = { chromium: { launch() { throw new Error('FIXKIT_STUB_PLAYWRIGHT_LOADED'); } } };\n");
+    let out = '';
+    try {
+      out = execFileSync(process.execPath, [drivePath, '--url', 'file:///fixkit-stub.html', '--measure', 'console'],
+        { stdio: 'pipe', cwd: tmp }).toString();
+    } catch (e) {
+      out = (e.stdout ? e.stdout.toString() : '') + (e.stderr ? e.stderr.toString() : '');
+    }
+    assert(out.includes('FIXKIT_STUB_PLAYWRIGHT_LOADED'),
+      'drive.js loads the TARGET CWD playwright (stub in temp-cwd node_modules is the one required)',
+      out.trim().slice(0, 160));
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // (2) Source + ORDERING: the cwd-paths resolve must exist AND come BEFORE any plain fallback —
+  // if the order flips, a plugin-dir-resolvable playwright would shadow the target project's.
+  const cwdIdx = driveSrc.indexOf("require.resolve('playwright', { paths: [process.cwd()] })");
+  const plainIdx = driveSrc.indexOf("require.resolve('playwright');");
+  assert(cwdIdx !== -1 && (plainIdx === -1 || cwdIdx < plainIdx),
+    'drive.js resolves playwright cwd-FIRST ({ paths: [process.cwd()] } before any plain fallback)',
+    `cwdIdx=${cwdIdx} plainIdx=${plainIdx}`);
+
+  // (3) Error-message contract: the absent-playwright error names the target-project install step.
+  assert(driveSrc.includes('npm install -D playwright'),
+    "drive.js absent-playwright error names the install step (npm install -D playwright)");
+}
+
+// 6. CONVENTION + EVAL-SCHEMA LINTERS (BLOCKING) ----------------------------
+section('6. Convention + eval-schema linters');
 function walkSkillFiles() {
   const out = [];
   if (!fs.existsSync(SKILLS_DIR)) return out;
@@ -199,8 +247,8 @@ for (const { skill } of skills) {
   assert(trig >= 3 && must >= 2, `${skill} evals: >=3 trigger / >=2 must-not-trigger`, `trigger=${trig} must-not=${must}`);
 }
 
-// 6. 4-KEY VERSION SYNC -----------------------------------------------------
-section('6. 4-key version sync (this plugin)');
+// 7. 4-KEY VERSION SYNC -----------------------------------------------------
+section('7. 4-key version sync (this plugin)');
 {
   const pj = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
   const pm = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'));
@@ -219,8 +267,8 @@ section('6. 4-key version sync (this plugin)');
     `plugin=${v1} mkt-top=${v2} mkt-plugins0=${v3} root=${v4}`);
 }
 
-// 7. TIER B — CONDITIONAL PLAYWRIGHT SMOKE (never blocks the gate) ----------
-section('7. Tier B — Playwright smoke (conditional)');
+// 8. TIER B — CONDITIONAL PLAYWRIGHT SMOKE (never blocks the gate) ----------
+section('8. Tier B — Playwright smoke (conditional)');
 {
   // Run-or-skip probe: PLAIN require.resolve, deliberately NOT cwd-aware — the gate's
   // deterministic SKIP must not flip to a RUN because the invoking cwd happens to carry a

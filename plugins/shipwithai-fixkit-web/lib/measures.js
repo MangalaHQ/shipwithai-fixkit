@@ -1,5 +1,5 @@
 'use strict';
-// shipwithai-fixkit-web-harness — the 5 UI LAYER_METHODS shaping helpers.
+// shipwithai-fixkit-web — the 5 UI LAYER_METHODS shaping helpers (the bundled runner's).
 //
 // PURE & BROWSER-FREE: each helper turns a raw in-page observation (numbers/strings the
 // Playwright runner `drive.js` already collected via page.evaluate) into the canonical

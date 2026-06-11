@@ -16,6 +16,11 @@ a concrete web stack.
 - **Per-layer recipes** (skills): `web-reproduce` (reproduce recipes), `web-verify` (verify recipes
   mirroring reproduce), `web-environment` (stand up the target), `web-source-map` (symptom → file hints),
   and `astro-recipes` (generic Astro UI-render fix patterns).
+- **The bundled `~~browser` runner** (since 0.3.0, when the standalone harness plugin was folded in):
+  `lib/drive.js` (thin headless Playwright runner) + `lib/measures.js` (the pure shaping helpers) +
+  the `user-invocable:false` sub-skill `browser-drive` documenting the CLI contract. It observes a
+  live page and emits one of the five UI `LAYER_METHODS` with observed numbers as evidence — pure
+  mechanism, no debugging logic.
 
 ## Framework-module contract (the seam)
 This adapter is organized around `lib/framework-module.contract.md` — a **doc** (no code) that splits
@@ -35,8 +40,24 @@ named organism; an external overlay pack adds that specialization on top of the 
 
 ## The stack this adapter targets
 Astro + content-collections, served by `astro dev` on the canonical port **4321**. Live-UI proof
-runs through `~~browser` (Claude in Chrome). Logic proof runs through node/vitest; System proof
-through the shell / GitHub Actions.
+runs through `~~browser` — primary: the bundled Playwright runner (`lib/drive.js`, in-loop);
+Claude in Chrome / Cowork live-DOM is a final spot-check only. Logic proof runs through
+node/vitest; System proof through the shell / GitHub Actions.
+
+## The bundled runner (config profile + security)
+- **Invocation:** `node plugins/shipwithai-fixkit-web/lib/drive.js --url <url> --measure <type>
+  [opts]` → one JSON line `{ method, ok, evidence }`; failure exits non-zero with
+  `{ ok:false, error }` and NO `method` (a failed observation is never proof).
+- **Config profile (not hardcoded in the skill):** viewport matrix default `1280,768,375`
+  (`--widths`); navigation/interaction timeout default `15000` ms (`--timeout`); console settle
+  `--wait` default `500` ms; headless Chromium, `{ headless: true }`, no remote debugging port.
+- **Prerequisite (documented, not vendored):** `playwright` + a Chromium binary, installed **in the
+  target project** (`npm install -D playwright` then `npx playwright install chromium`) — the
+  runner resolves `playwright` from the invoking cwd. No `package.json` here; the repo stays
+  zero-dependency.
+- **Security note:** the runner **executes target code** (launches a browser, loads a page). It is
+  bounded to `--url`/`--selector` inputs, launches headless with no exposed debug port, and edits
+  no source. Treat any change to `lib/drive.js` or `manifest.json` as security-review scope.
 
 ## Capability tiers (and the ASSIST downgrade)
 `lib/capability.json` declares UI/Logic/System = FULL — but **UI FULL requires `~~browser`**.
@@ -57,10 +78,16 @@ per skill (≥ 3 trigger / ≥ 2 must-not) · 4-key version sync (`plugin.json` 
 
 ## Run the gate
 `node tests/run-all.js` (run from the repo root, not this dir — the repo hooks use a
-project-relative path). Exit 0 = green.
+project-relative path). Exit 0 = green. Since 0.3.0 the gate also carries the former harness
+checks: the `measures.js` unit test (methods pinned to core `LAYER_METHODS.UI`), the cross-plugin
+contract test against core `validateLedger`, and the conditional Tier-B Playwright smoke — Tier B
+SKIPs when `playwright` is absent (plain `require.resolve` probe, deliberately not cwd-aware) and
+the gate's green NEVER depends on it.
 
 ## What this plugin does NOT do
 - It ships **no debugging logic, no layer-agents, and no orchestration** — those are core's.
 - It does not re-implement the ledger, the Iron Law, or the state machine; it only references them.
 - It does not bind any MCP server in code; `CONNECTORS.md` declares the mappings, the host wires them.
 - It does not close a UI bug without `~~browser`; absent it, the layer is ASSIST and emits handoff/v0.
+- Its runner does not classify bugs, choose the proof method, stand up the server, or close the
+  ledger; and it does not vendor Playwright or add a package manifest.

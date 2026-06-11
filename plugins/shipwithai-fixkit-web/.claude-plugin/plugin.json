@@ -1,20 +1,21 @@
 {
   "name": "shipwithai-fixkit-web",
-  "description": "Thin web adapter for the fixkit engine: maps the ~~connector placeholders to concrete web tooling (Claude in Chrome, astro dev, node/vitest), and ships per-layer reproduce/verify/source-map recipes for an Astro + content-collections stack. No debugging logic, no layer-agents, no orchestration — those live in core.",
-  "version": "0.2.1",
+  "description": "Thin web adapter for the fixkit engine: maps the ~~connector placeholders to concrete web tooling, ships per-layer reproduce/verify/source-map recipes for an Astro + content-collections stack, and bundles the in-loop headless Playwright runner (browser-drive: 6 measures onto the 5 UI LAYER_METHODS) so UI bugs close autonomously at FULL. No debugging logic, no layer-agents, no orchestration — those live in core.",
+  "version": "0.3.0",
   "author": {
     "name": "ShipWithAI",
     "url": "https://shipwithai.io"
   },
   "homepage": "https://shipwithai.io/plugins/fixkit-web",
-  "repository": "https://github.com/shipwithai/shipwithai-fixkit",
+  "repository": "https://github.com/MangalaHQ/shipwithai-fixkit",
   "license": "MIT",
-  "keywords": ["bug-fix", "web", "adapter", "astro", "browser", "ui", "reproduce", "verify", "source-map"],
+  "keywords": ["bug-fix", "web", "adapter", "astro", "browser", "ui", "reproduce", "verify", "source-map", "playwright", "headless"],
   "skills": [
     "./skills/web-environment",
     "./skills/web-reproduce",
     "./skills/web-verify",
     "./skills/web-source-map",
-    "./skills/astro-recipes"
+    "./skills/astro-recipes",
+    "./skills/browser-drive"
   ]
 }

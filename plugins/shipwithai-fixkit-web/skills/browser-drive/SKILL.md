@@ -8,19 +8,19 @@ user-invocable: false
 
 # browser-drive — the in-loop `~~browser` mechanism (headless Playwright)
 
-This skill is the **recipe surface** for the harness's `~~browser` binding. The engine (core's
+This skill is the **recipe surface** for this adapter's bundled `~~browser` binding. The engine (core's
 spine, REPRODUCE and VERIFY phases) drives it to observe a live web target **itself** — measure DOM
 geometry, read computed styles, capture console, drive interactions, sweep the viewport — and record
 the **observed numbers** as proof. It is pure mechanism: it does not classify the bug, pick the
 proof method, or edit source (core's `triage` / `verification` / layer-agents do that).
 
-When the web adapter's `CONNECTORS.md` resolves `~~browser` to this harness, invoke the runner via
-Bash. It prints **one JSON line** `{ method, ok, evidence }` and exits 0 on success.
+When `CONNECTORS.md` resolves `~~browser` to this bundled runner, invoke it via Bash. It prints
+**one JSON line** `{ method, ok, evidence }` and exits 0 on success.
 
 ## Invocation (the CLI contract)
 
 ```
-node plugins/shipwithai-fixkit-web-harness/lib/drive.js --url <url> --measure <type> [options]
+node plugins/shipwithai-fixkit-web/lib/drive.js --url <url> --measure <type> [options]
 ```
 
 - `ok` is `true` when the **healthy** state holds. REPRODUCE expects `ok:false` (bug present);
@@ -31,11 +31,13 @@ node plugins/shipwithai-fixkit-web-harness/lib/drive.js --url <url> --measure <t
 - On failure (bad selector, timeout, nav error) the runner exits **non-zero** with
   `{ ok:false, error }` and **no `method`** — a failed observation is never proof; record a
   fix-failure (feeds 3-strikes), never a close.
-- Prerequisite: Playwright (`npx playwright install chromium`) — see this plugin's `CLAUDE.md`.
+- Prerequisite: Playwright, installed **in the target project** (`npm install -D playwright` then
+  `npx playwright install chromium`) — the runner resolves `playwright` from the invoking cwd.
+  See this plugin's `CLAUDE.md`.
 
 ## The measures (six measures, five UI LAYER_METHODS)
 
-`scroll-read-state` adds **no** new method — it reuses `interaction-assertion`, so the harness still
+`scroll-read-state` adds **no** new method — it reuses `interaction-assertion`, so the runner still
 emits exactly the five UI `LAYER_METHODS` (a scroll-then-read is behaviorally a post-action state
 assertion, the same proof class as click-then-read).
 
@@ -67,19 +69,19 @@ viewport        --selector <sel> [--widths 1280,768,375]      -> browser-asserti
 
 ```
 # REPRODUCE (expect ok:false): the <pre> overflows its box
-node plugins/shipwithai-fixkit-web-harness/lib/drive.js \
+node plugins/shipwithai-fixkit-web/lib/drive.js \
   --url http://localhost:4321/blog/x --measure overflow --selector 'pre'
 # -> {"method":"dom-assertion","ok":false,"evidence":{"scrollWidth":612,"clientWidth":280,"overflow":true}}
 
 # VERIFY (expect ok:true) after the fix — same selector, mirrored assertion
-node plugins/shipwithai-fixkit-web-harness/lib/drive.js \
+node plugins/shipwithai-fixkit-web/lib/drive.js \
   --url http://localhost:4321/blog/x --measure overflow --selector 'pre'
 # -> {"method":"dom-assertion","ok":true,"evidence":{"scrollWidth":280,"clientWidth":280,"overflow":false}}
 ```
 
 The target is stood up by the adapter's `~~runtime` (`astro dev :4321`) — the runner receives the
 URL; it does not embed the server command. The `verified_by` recorded is the layer-agent plus this
-runner, e.g. `ui-bug-agent (web-harness/playwright)`.
+runner, e.g. `ui-bug-agent (web/playwright)`.
 
 ## What this skill does NOT do
 - It does not classify the bug, pick which proof counts, or decide the symptom layer — core's

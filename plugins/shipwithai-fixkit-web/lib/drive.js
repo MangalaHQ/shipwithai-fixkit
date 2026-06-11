@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// shipwithai-fixkit-web-harness — the ~~browser binding (headless Playwright runner).
+// shipwithai-fixkit-web — the ~~browser binding (bundled headless Playwright runner).
 //
 // This is the MECHANISM the engine drives in-loop to REPRODUCE and VERIFY a UI bug itself.
 // It navigates a live target, takes ONE in-page observation, shapes it through lib/measures.js,
@@ -22,7 +22,7 @@
 // FAILURE  -> exit 1, stdout = { ok:false, error:<reason> }  (NO method: a failure is never proof)
 //
 // Playwright is a DOCUMENTED PREREQUISITE, not a vendored/declared dependency (see CLAUDE.md).
-// It is required lazily so the rest of the harness (and its Tier-A gate) stays zero-dependency.
+// It is required lazily so the rest of the adapter (and the deterministic gate) stays zero-dependency.
 
 const measures = require('./measures');
 

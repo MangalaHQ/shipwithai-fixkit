@@ -1,6 +1,6 @@
 ---
 name: astro-recipes
-description: "Generic Astro UI-render fix recipes: client:* hydration, unwired *.behavior.ts, <pre> overflow — each targets a web-harness measure. Triggers: 'astro recipe', 'hydrate this island'."
+description: "Generic Astro UI-render fix recipes: client:* hydration, unwired *.behavior.ts, <pre> overflow — each targets a browser-drive measure. Triggers: 'astro recipe', 'hydrate this island'."
 version: 0.2.1
 license: MIT
 user-invocable: true
@@ -11,8 +11,8 @@ user-invocable: true
 The Astro framework module's **`recipes` slot** (see `lib/framework-module.contract.md`). These are
 **framework-generic** patterns for the most common Astro UI-render bugs — expressed with **no** org or
 design-system specifics (no `@shipwithai/design`, no named organism). Each recipe names the
-`web-harness` measure (`browser-drive` CLI) that reproduces and verifies it; the close is a live
-measurement, never a source diff.
+`browser-drive` measure (this adapter's bundled runner CLI) that reproduces and verifies it; the
+close is a live measurement, never a source diff.
 
 An org-specific overlay (e.g. a private pack's `astro-recipes`) may layer concrete import paths and
 component names on top of these — that specialization lives in the overlay, not here.
@@ -43,7 +43,7 @@ import Counter from '../components/Counter.jsx';
 Reproduce + verify (`interaction`): click the control, read a state prop before/after.
 
 ```sh
-node plugins/shipwithai-fixkit-web-harness/lib/drive.js \
+node plugins/shipwithai-fixkit-web/lib/drive.js \
   --url http://localhost:4321/<route> --measure interaction \
   --selector '[data-counter] button' --target '[data-counter] output' --prop textContent
 # REPRODUCE expects ok:false (no change); VERIFY expects ok:true (state changed after the fix)
@@ -67,7 +67,7 @@ If the behavior reveals on scroll (a scroll-spy enabling controls past a read-th
 `scroll-read-state` instead of a click:
 
 ```sh
-node plugins/shipwithai-fixkit-web-harness/lib/drive.js \
+node plugins/shipwithai-fixkit-web/lib/drive.js \
   --url http://localhost:4321/<route> --measure scroll-read-state \
   --target '[data-widget] button' --ratio 0.5 --prop disabled
 # the button flips disabled true->false once the wired scroll-spy fires (ok:true after the fix)
@@ -90,7 +90,7 @@ the `<pre>`. `overflow-x:auto` contains the overflow so the page root fits, but 
 go green. Select `body` (or `html`):
 
 ```sh
-node plugins/shipwithai-fixkit-web-harness/lib/drive.js \
+node plugins/shipwithai-fixkit-web/lib/drive.js \
   --url http://localhost:4321/<route> --measure overflow --selector 'body'
 # REPRODUCE expects ok:false (the page overflows sideways); VERIFY expects ok:true (contained)
 ```

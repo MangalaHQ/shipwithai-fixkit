@@ -12,7 +12,7 @@ verification:
   method: dom-assertion
   capability_tier: FULL
   evidence: "drive.js --measure overflow #code -> {scrollWidth:280, clientWidth:280, overflow:false} (was scrollWidth:612 > clientWidth:280 before the fix); ok:true"
-  verified_by: "ui-bug-agent (web-harness/playwright)"
+  verified_by: "ui-bug-agent (web/playwright)"
 hard_lock_violations: []
 guard: "evals/fixtures/smoke-page/fixed.html pins #code scrollWidth <= clientWidth at 1280/768/375"
 ---

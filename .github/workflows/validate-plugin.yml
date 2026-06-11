@@ -37,10 +37,14 @@ jobs:
             # The diff itself must succeed (set -e aborts on git failure). Only the plugin-path
             # filter may legitimately be empty (a genuine non-plugin PR), so its no-match is tolerated.
             CHANGED="$(git diff --name-only "${BASE_SHA}...HEAD")"
+            # Only validate plugin dirs that still EXIST at HEAD — a DELETED plugin (e.g. the
+            # web-harness fold-in, web 0.3.0) appears in the diff but has nothing left to
+            # validate; putting it in the matrix fails on its missing required files.
             PLUGINS="$(printf '%s\n' "${CHANGED}" \
               | { grep '^plugins/' || true; } \
               | cut -d'/' -f2 \
               | sort -u \
+              | { while read -r p; do if [ -d "plugins/${p}" ]; then printf '%s\n' "${p}"; fi; done; } \
               | jq -R -s -c 'split("\n") | map(select(length > 0))')"
           fi
           echo "plugins=${PLUGINS}" >> "$GITHUB_OUTPUT"

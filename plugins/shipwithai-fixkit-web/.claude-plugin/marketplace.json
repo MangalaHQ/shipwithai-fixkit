@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "shipwithai-fixkit-web",
-  "description": "Thin web adapter for the fixkit engine. Maps ~~connectors to concrete web tooling and ships per-layer reproduce/verify/source-map recipes for an Astro stack.",
+  "description": "Thin web adapter for the fixkit engine. Maps ~~connectors to concrete web tooling, ships per-layer recipes for an Astro stack, and bundles the in-loop headless Playwright runner.",
   "owner": {
     "name": "ShipWithAI",
     "email": "support@shipwithai.com"
@@ -9,16 +9,16 @@
   "plugins": [
     {
       "name": "shipwithai-fixkit-web",
-      "description": "Thin web adapter: connector mappings + per-layer recipes + capability declarations for an Astro + content-collections stack. No debugging logic — that lives in core.",
-      "version": "0.2.1",
+      "description": "Thin web adapter: connector mappings + per-layer recipes + capability declarations + the bundled headless Playwright runner (6 measures onto the 5 UI LAYER_METHODS) for an Astro + content-collections stack. No debugging logic — that lives in core.",
+      "version": "0.3.0",
       "author": {
         "name": "ShipWithAI",
         "email": "support@shipwithai.com"
       },
       "source": "./",
       "category": "productivity",
-      "tags": ["bug-fix", "web", "adapter", "astro", "browser", "ui"]
+      "tags": ["bug-fix", "web", "adapter", "astro", "browser", "ui", "playwright"]
     }
   ],
-  "version": "0.2.1"
+  "version": "0.3.0"
 }

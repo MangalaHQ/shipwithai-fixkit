@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// shipwithai-fixkit-web-harness — the ~~browser binding (headless Playwright runner).
+// shipwithai-fixkit-web — the ~~browser binding (bundled headless Playwright runner).
 //
 // This is the MECHANISM the engine drives in-loop to REPRODUCE and VERIFY a UI bug itself.
 // It navigates a live target, takes ONE in-page observation, shapes it through lib/measures.js,
@@ -22,7 +22,7 @@
 // FAILURE  -> exit 1, stdout = { ok:false, error:<reason> }  (NO method: a failure is never proof)
 //
 // Playwright is a DOCUMENTED PREREQUISITE, not a vendored/declared dependency (see CLAUDE.md).
-// It is required lazily so the rest of the harness (and its Tier-A gate) stays zero-dependency.
+// It is required lazily so the rest of the adapter (and the deterministic gate) stays zero-dependency.
 
 const measures = require('./measures');
 
@@ -51,9 +51,19 @@ async function main() {
   if (!args.measure) return fail('missing --measure');
   const timeout = Number(args.timeout || 15000);
 
+  // Resolve `playwright` from the TARGET project's cwd FIRST — the engine invokes the runner
+  // from the project root, where the prerequisite is installed — then fall back to normal
+  // resolution (a dev box where playwright resolves globally). cwd-first is load-bearing: it is
+  // what lets the project-local install win, and what the gate's stub-resolution check bites on.
   let playwright;
-  try { playwright = require('playwright'); }
-  catch (e) { return fail('playwright not installed (run: npx playwright install chromium)'); }
+  try {
+    let resolved;
+    try { resolved = require.resolve('playwright', { paths: [process.cwd()] }); }
+    catch (e) { resolved = require.resolve('playwright'); }
+    playwright = require(resolved);
+  } catch (e) {
+    return fail('playwright not installed — in the target project run: npm install -D playwright && npx playwright install chromium');
+  }
 
   let browser;
   try {

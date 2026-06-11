@@ -22,6 +22,12 @@ jobs:
           PLUGINS="[]"
 
           for plugin_json in $(git diff HEAD~1 --name-only | grep '.claude-plugin/plugin.json'); do
+            # A deleted manifest (e.g. a plugin folded into another) still shows in the diff;
+            # there is nothing to publish for it and reading it would throw. Skip.
+            if [ ! -f "$plugin_json" ]; then
+              echo "Skipping deleted plugin manifest: ${plugin_json}"
+              continue
+            fi
             PLUGIN_DIR=$(echo "$plugin_json" | sed 's|/.claude-plugin/plugin.json||')
             PLUGIN_NAME=$(basename "$PLUGIN_DIR")
 

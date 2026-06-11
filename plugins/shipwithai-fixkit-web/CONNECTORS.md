@@ -7,22 +7,22 @@ it is absent.
 
 | Placeholder | Web tool (primary) | Alternatives |
 |---|---|---|
-| `~~browser` | **web-harness Playwright runner** (in-loop, auto-close) — `node plugins/shipwithai-fixkit-web-harness/lib/drive.js` | Claude in Chrome / Cowork live-DOM (final spot-check), Playwright MCP |
+| `~~browser` | **bundled Playwright runner** (in-loop, auto-close) — `node plugins/shipwithai-fixkit-web/lib/drive.js` | Claude in Chrome / Cowork live-DOM (final spot-check), Playwright MCP |
 | `~~runtime` | `astro dev` on `http://localhost:4321` | `vite preview`, `astro preview` |
 | `~~test-runner` | `node <file>` exit code | `vitest` |
 | `~~ci` | GitHub Actions | local shell build |
 | `~~source control` | git + GitHub | local `git` |
 
 ## If ~~browser Available
-**Primary: the web-harness Playwright runner** (`shipwithai-fixkit-web-harness`, in-loop, no human in
-the inner loop). Drive the rendered page via
-`node plugins/shipwithai-fixkit-web-harness/lib/drive.js --url <url> --measure <type> [opts]`: it reads
+**Primary: the bundled Playwright runner** (`lib/drive.js`, shipped in this plugin since 0.3.0 —
+in-loop, no human in the inner loop). Drive the rendered page via
+`node plugins/shipwithai-fixkit-web/lib/drive.js --url <url> --measure <type> [opts]`: it reads
 `getComputedStyle`, measures `scrollWidth`/`clientWidth`, reads the console, runs interaction + state
 assertions, and sweeps the viewport matrix — emitting one UI `LAYER_METHODS` method
 (`browser-assertion`/`computed-style`/`dom-assertion`/`console-assertion`/`interaction-assertion`) with
 the observed numbers as `verification.evidence`. This is what makes **UI FULL autonomous** — the bug
 closes on a live measurement, never a source diff. Record `verified_by` as the layer-agent + runner
-(e.g. `ui-bug-agent (web-harness/playwright)`).
+(e.g. `ui-bug-agent (web/playwright)`).
 
 **Final spot-check (demoted): Claude in Chrome / Cowork live-DOM.** Once the harness has closed the
 bug, an optional real-environment spot-check in a real Chrome confirms it in a human-facing browser. It

@@ -5,7 +5,7 @@
     {
       "id": "astro-recipes-01",
       "prompt": "My React island in this Astro page renders but clicking it does nothing.",
-      "expectedBehavior": "Apply the generic Hydration (a) recipe: the island ships no client:* directive, so add client:load/client:visible at the usage site; reproduce + verify with the web-harness interaction measure (state changes after click).",
+      "expectedBehavior": "Apply the generic Hydration (a) recipe: the island ships no client:* directive, so add client:load/client:visible at the usage site; reproduce + verify with the browser-drive interaction measure (state changes after click).",
       "category": "hydration-directive",
       "shouldTrigger": true
     },
@@ -19,7 +19,7 @@
     {
       "id": "astro-recipes-03",
       "prompt": "A code block on my Astro blog overflows and pushes the page sideways at 375px.",
-      "expectedBehavior": "Apply the generic Overflow recipe: add overflow-x:auto on the <pre> to contain it, then verify with the web-harness overflow measure on the PAGE ROOT (--selector 'body') that the page no longer overflows sideways. The <pre> keeps overflow-x:auto and stays scrollWidth>clientWidth by design, so the proof is the page/container, NOT the <pre> itself.",
+      "expectedBehavior": "Apply the generic Overflow recipe: add overflow-x:auto on the <pre> to contain it, then verify with the browser-drive overflow measure on the PAGE ROOT (--selector 'body') that the page no longer overflows sideways. The <pre> keeps overflow-x:auto and stays scrollWidth>clientWidth by design, so the proof is the page/container, NOT the <pre> itself.",
       "category": "overflow",
       "shouldTrigger": true
     },

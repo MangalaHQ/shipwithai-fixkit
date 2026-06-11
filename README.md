@@ -21,11 +21,15 @@ shipwithai-fixkit/
 ├── docs/adr/                                 # ADR-0001..0004
 └── plugins/
     ├── shipwithai-fixkit-core/              # the engine
-    └── shipwithai-fixkit-{web,web-harness,backend,kmp,android,ios}/  # adapters + harness
+    └── shipwithai-fixkit-{web,backend,kmp,android,ios}/  # platform adapters
 ```
 
-The five platform adapters (`web`, `backend`, `kmp`, `android`, `ios`) and the web-harness ship
-alongside the core; the ShipWithAI org pack lives in the sibling repo `shipwithai-fixkit-focus`.
+The five platform adapters (`web`, `backend`, `kmp`, `android`, `ios`) ship alongside the core;
+the ShipWithAI org pack lives in the sibling repo `shipwithai-fixkit-focus`.
+
+> **Migration note (0.3.0):** the standalone `shipwithai-fixkit-web-harness` plugin was folded
+> into `shipwithai-fixkit-web@0.3.0`, which now contains the in-loop Playwright runner. If you
+> installed `shipwithai-fixkit-web-harness`, uninstall it and upgrade the web adapter.
 
 ## `shipwithai-fixkit-core`
 

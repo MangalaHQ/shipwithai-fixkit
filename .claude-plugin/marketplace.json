@@ -21,27 +21,15 @@
     },
     {
       "name": "shipwithai-fixkit-web",
-      "description": "Thin web adapter for the fixkit engine: maps ~~connectors to concrete web tooling (Claude in Chrome, astro dev, node/vitest) and ships per-layer reproduce/verify/source-map recipes plus generic Astro fix recipes for an Astro + content-collections stack. No debugging logic — that lives in core.",
-      "version": "0.2.1",
+      "description": "Thin web adapter for the fixkit engine: maps ~~connectors to concrete web tooling (bundled headless Playwright runner, astro dev, node/vitest), ships per-layer reproduce/verify/source-map recipes plus generic Astro fix recipes, and closes UI bugs autonomously at FULL via the in-loop runner (6 measures onto the 5 UI LAYER_METHODS). No debugging logic — that lives in core.",
+      "version": "0.3.0",
       "author": {
         "name": "ShipWithAI",
         "email": "support@shipwithai.com"
       },
       "source": "./plugins/shipwithai-fixkit-web",
       "category": "productivity",
-      "tags": ["bug-fix", "web", "adapter", "astro", "browser", "ui"]
-    },
-    {
-      "name": "shipwithai-fixkit-web-harness",
-      "description": "The in-loop ~~browser binding for the fixkit engine: a thin headless Playwright runner that observes a live page and emits the 5 UI LAYER_METHODS with observed-number evidence, so UI bugs close autonomously at FULL. Pure mechanism — no debugging logic, that lives in core.",
-      "version": "0.2.0",
-      "author": {
-        "name": "ShipWithAI",
-        "email": "support@shipwithai.com"
-      },
-      "source": "./plugins/shipwithai-fixkit-web-harness",
-      "category": "productivity",
-      "tags": ["bug-fix", "web", "harness", "playwright", "browser", "ui"]
+      "tags": ["bug-fix", "web", "adapter", "astro", "browser", "ui", "playwright"]
     },
     {
       "name": "shipwithai-fixkit-backend",

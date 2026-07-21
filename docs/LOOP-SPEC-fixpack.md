@@ -137,7 +137,9 @@ Climb the ladder; do not jump to scheduled autonomy.
 - **Phase 1 — the spine is the ledger.** Drive one real bug through `.fixkit/BUG-*.md`,
   writing each stage's `state:`. Kill mid-pipeline, reopen, confirm you can name the next
   stage from the file alone (resume test). The fixkit ledger already does this — the
-  shipwithai.io `.fixkit/` (BUG-001…007) and `fixkit-fe-astro/.fixkit/` are live spines.
+  shipwithai.io `.fixkit/` (BUG-001…007) is the live spine (the retired
+  `fixkit-fe-astro` acceptance fixture was another — run archive:
+  `shipwithai-fixkit-design/handoffs/fe-astro-run-archive/`).
 - **Phase 2 — `/goal` with the validator as checker.** Wrap the FIX→VERIFY span:
   `/goal validateLedger ACCEPTS the closed snapshot for BUG-XXX AND verify.test passes` —
   capped with `--max-turns`. The layer-agent iterates; the validator (not the agent) decides

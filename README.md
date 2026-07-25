@@ -11,6 +11,35 @@ rendered bug never closes on a source diff. The Iron Law (no fix before root cau
 rule (no runner → no auto-close → handoff/v0), and 3-strikes escalation are enforced by a **ledger
 state machine**, not by good intentions.
 
+## Install & use
+
+In Claude Code, add the marketplace once, then install the engine plus the adapter for your stack:
+
+```
+/plugin marketplace add MangalaHQ/shipwithai-fixkit
+/plugin install shipwithai-fixkit-core@shipwithai-fixkit
+/plugin install shipwithai-fixkit-web@shipwithai-fixkit    # or -backend / -kmp / -android / -ios
+```
+
+Some adapters need their measurement runner installed **in your project** (nothing is vendored).
+For the web adapter: `npm install -D playwright && npx playwright install chromium`.
+
+Then, from your project root (dev server running if the bug is a rendered one), hand the engine
+a bug:
+
+```
+/shipwithai-fixkit-core:fix <symptom, page URL or failing job, what you expected>
+```
+
+The engine opens a ledger entry under `.fixkit/` (commit it — it is the bug's audit trail),
+REPRODUCEs the symptom with a live measurement, writes the root cause, applies the fix, and
+re-runs the same measurement to VERIFY. The bug reaches `closed` only on layer-appropriate proof
+at `capability_tier: FULL`; with no runner wired, it stops honestly at `candidate` with a
+`handoff/v0` verification request instead of a fake close.
+
+Full front-end walkthrough: [docs/QUICKSTART-FE.md](docs/QUICKSTART-FE.md). Each adapter's README
+documents its connector mappings, capability tier, and prerequisites.
+
 ## Repo layout
 
 ```

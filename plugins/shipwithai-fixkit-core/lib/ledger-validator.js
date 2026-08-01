@@ -43,6 +43,15 @@ function hardLockViolation(l, event) {
     ? { code: 'HARD_LOCK_VIOLATION', message: `${event} refused: unresolved hard_lock_violations [${l.hard_lock_violations.join(', ')}] (resolve or escalate before fixing)` }
     : null;
 }
+// Cross-repo pre-fix gate (multi-repo design-system seam, Phase-0). Shared by the transition
+// surface (enter_fixed/enter_candidate) and the invariant auditor so they cannot drift — the
+// hard-lock precedent. A design-repo/both root cause must escalate + emit a cross-repo handoff,
+// never enter a consumer post-fix state (fixed/candidate). Returns a violation or null.
+function crossRepoConsumerViolation(l, event) {
+  return (l.multi_repo === true && ['design-repo', 'both'].includes(l.fix_source))
+    ? { code: 'CROSS_REPO_CONSUMER_EDIT', message: `${event} refused: fix_source '${l.fix_source}' owns the fix upstream — escalate and emit a cross-repo handoff, do not enter fixed/candidate in the consumer` }
+    : null;
+}
 
 // ---------------------------------------------------------------------------
 // validateLedger — invariant auditor for a static ledger snapshot.
@@ -76,6 +85,20 @@ function validateLedger(l) {
   // fix should never have been applied (it must be resolved or the bug escalated first).
   if (POST_ROOTCAUSE_STATES.includes(state) && Array.isArray(l.hard_lock_violations) && l.hard_lock_violations.length) {
     v.push({ code: 'HARD_LOCK_VIOLATION', message: `state '${state}' must not carry unresolved hard_lock_violations [${l.hard_lock_violations.join(', ')}]` });
+  }
+  // Cross-repo fix_source guards (multi-repo design-system seam, Phase-0). Only active when
+  // multi_repo === true (single-repo ledgers are byte-identical to legacy behaviour).
+  // (1) Consistency invariant: fix_source ∈ {design-repo, both} ⇒ root_cause_layer == upstream.
+  if (['design-repo', 'both'].includes(l.fix_source) && !blank(l.fix_source) && l.root_cause_layer !== 'upstream') {
+    v.push({ code: 'FIXSOURCE_ROOTCAUSE_MISMATCH', message: `fix_source '${l.fix_source}' requires root_cause_layer 'upstream' (got '${l.root_cause_layer || ''}')` });
+  }
+  // (2) Pre-fix: a multi_repo bug cannot sit at a POST_ROOTCAUSE state without classifying fix_source.
+  if (l.multi_repo === true && POST_ROOTCAUSE_STATES.includes(state) && blank(l.fix_source)) {
+    v.push({ code: 'FIX_SOURCE_UNSET_MULTIREPO', message: `state '${state}' requires a non-empty fix_source when multi_repo is true` });
+  }
+  // (3) Consumer-edit invariant twin: a design-repo/both bug must not sit at a consumer post-fix state.
+  if (l.multi_repo === true && ['design-repo', 'both'].includes(l.fix_source) && ['fixed', 'candidate'].includes(state)) {
+    v.push({ code: 'CROSS_REPO_CONSUMER_EDIT', message: `fix_source '${l.fix_source}' must not sit at consumer post-fix state '${state}' — escalate and emit a cross-repo handoff` });
   }
   // ASSIST ceiling: no runner -> no auto-close -> handoff/v0 (max candidate).
   if (state === 'closed' && tier(l) === 'ASSIST') {
@@ -140,6 +163,8 @@ function applyTransition(ledger, event, payload) {
       // Hard-lock pre-fix gate (Phase-1 seam): an org pack populates hard_lock_violations before
       // the FIX step; a non-empty list blocks fixing until the lock is resolved or the bug escalated.
       { const hl = hardLockViolation(l, event); if (hl) v.push(hl); }
+      // Cross-repo pre-fix gate (multi-repo seam): a design-repo/both bug must escalate, not fix here.
+      { const xr = crossRepoConsumerViolation(l, event); if (xr) v.push(xr); }
       if (event === 'enter_candidate' && tier(l) !== 'ASSIST') v.push({ code: 'CANDIDATE_REQUIRES_ASSIST', message: 'candidate state is only for ASSIST tier' });
       if (v.length) return refuse(v);
       l.state = event === 'enter_fixed' ? 'fixed' : 'candidate';

@@ -1,7 +1,7 @@
 {
   "name": "shipwithai-fixkit-core",
   "description": "Stack-agnostic, layer-aware bug-fix engine. Classifies bugs by symptom layer (UI/Logic/System), debugs on a vendored systematic-debugging spine, and closes only on layer-appropriate proof. Iron Law (no fix before root cause) and the integrity guard are enforced by a ledger state machine.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": {
     "name": "ShipWithAI",
     "url": "https://shipwithai.io"

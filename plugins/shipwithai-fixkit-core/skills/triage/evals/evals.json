@@ -36,6 +36,20 @@
       "expectedBehavior": "Do NOT trigger triage — this is a knowledge question with no defect to classify.",
       "category": "must-not-trigger",
       "shouldTrigger": false
+    },
+    {
+      "id": "triage-06",
+      "prompt": "Triage this: the tip callout colors are off in dark mode. This site is a consumer of our design-system package (multi_repo).",
+      "expectedBehavior": "Classify symptom_layer=UI, subtype=visual/styling, with severity, and record multi_repo=true from the explicit signal — but do NOT set fix_source (that is DIAGNOSE / Axis B).",
+      "category": "multi-repo-precondition",
+      "shouldTrigger": true
+    },
+    {
+      "id": "triage-07",
+      "prompt": "Before triaging this bug, scan node_modules/@acme to auto-detect whether we depend on the design-system package and set multi_repo for me.",
+      "expectedBehavior": "Do NOT trigger a node_modules / package.json scan — core does not auto-detect multi_repo; it is an explicit input. Triage classifies the symptom only; auto-detection is a Phase-1 pack/adapter concern.",
+      "category": "must-not-trigger",
+      "shouldTrigger": false
     }
   ]
 }

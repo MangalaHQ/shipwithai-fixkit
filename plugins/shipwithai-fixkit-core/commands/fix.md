@@ -26,6 +26,17 @@ the skills `triage`, `spine`, `verification`, `regression-guard` as needed.
    refuses with `IRON_LAW_FIX_BEFORE_ROOT_CAUSE`. If `root_cause_layer != symptom_layer`,
    re-dispatch to the correct layer-agent (the ledger carries continuity). If the root cause is an
    upstream design organism, gap-log and set `state: escalated` — no consumer edit.
+6a. **Classify fix-source (Axis B, multi-repo only).** If `multi_repo == true`, DIAGNOSE must set
+    `fix_source` before any FIX — an empty `fix_source` at a post-root-cause state is refused
+    (`FIX_SOURCE_UNSET_MULTIREPO`). `fix_source ∈ {design-repo, both}` requires
+    `root_cause_layer: upstream` (`FIXSOURCE_ROOTCAUSE_MISMATCH`). Then route:
+    - `consumer` → fix normally in the current repo (steps 7–11 below).
+    - `design-repo` → **STOP**: emit a `cross-repo-handoff/v0` (fix DS → publish bump → bump consumer
+      dep), `escalate` → `state: escalated`; do **not** edit consumer code. Entering `fixed`/`candidate`
+      here is refused (`CROSS_REPO_CONSUMER_EDIT`).
+    - `both` → as `design-repo`, plus `pending_followup: consumer` and surface the release sequence
+      (DS-first, consumer follow-up). The ledger does not report a clean terminal until the consumer
+      dep-bump lands.
 7. **Gate.** Apply approval policy (Phase 0: `none`).
 8. **Fix.** Smallest change — **hard-locks checked first** (Phase-1 seam: `hard_lock_violations`).
    On a failed attempt call `record_fix_failure`; the 3rd fires `state: escalated`
@@ -49,4 +60,7 @@ look one layer up, escalate. Do not attempt fix #4.
 - It does not bypass the Iron Law, the integrity rule, or 3-strikes — those are enforced by the
   state machine, not by intent.
 - It does not ship adapters or org-specific hard-locks (Phase 1+); it only wires the seams.
+- It does not edit consumer code when `fix_source ∈ {design-repo, both}` — it STOPs, emits a
+  cross-repo handoff, and escalates (`CROSS_REPO_CONSUMER_EDIT`); it does not execute the cross-repo
+  remediation (publish/bump) itself (Phase 1+), nor auto-detect `multi_repo`.
 - It does not close a bug without recorded, layer-appropriate evidence and a named verifier.

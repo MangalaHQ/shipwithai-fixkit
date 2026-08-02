@@ -39,10 +39,21 @@ hypothesis, smallest change. Three failed fixes → escalate.
 
 A UI bug **never** closes on a source diff — that is rejected as `VERIFICATION_LAYER_MISMATCH`.
 
+## Fix-source gate (multi-repo primary prevention)
+
+After DIAGNOSE, before you propose any fix, answer: **"is the root cause in the design-system
+package or in our repo?"** and set `fix_source`. When `fix_source ∈ {design-repo, both}` (root cause
+is an upstream DS organism), do **not** edit the consumer: gap-log, emit a `cross-repo-handoff/v0`,
+and let the bug end `escalated` (for `both`, also record `pending_followup: consumer`). This is the
+**primary prevention**; the ledger guards (`CROSS_REPO_CONSUMER_EDIT`, `FIX_SOURCE_UNSET_MULTIREPO`,
+`FIXSOURCE_ROOTCAUSE_MISMATCH`) are only the backstop.
+
 ## What this agent does NOT do
 
 - It does not handle Logic or System symptoms — it hands those back for re-dispatch.
 - It does not edit the consumer when the root cause is an upstream design organism; it gap-logs
   and the bug ends `escalated`.
+- It does not fix in the consumer when `fix_source ∈ {design-repo, both}` — it emits a cross-repo
+  handoff and escalates (it never sets `fixed`/`candidate` there).
 - It does not close a bug on a source diff or without live evidence.
 - It does not propose a fix before writing a root cause (Iron Law).

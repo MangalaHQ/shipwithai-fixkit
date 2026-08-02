@@ -50,6 +50,20 @@ Set these frontmatter fields and leave `state: open`:
 The orchestrator (`/shipwithai-fixkit-core:fix`) reads this classification to select the matching
 layer-agent and the adapter's Reproduce recipe.
 
+## multi-repo precondition (explicit input only)
+
+If the invoker signals a **multi-repo design-system setup** (a `multi_repo` invocation arg or a
+project-config field), record `multi_repo: true` on the ledger. This is a **precondition**, not a
+classification decision:
+
+- Triage does **not** scan `node_modules` / `package.json` scopes to detect it — auto-detection is a
+  Phase-1 pack/adapter concern; core is stack-agnostic and takes `multi_repo` as explicit input.
+- Triage does **not** set `fix_source` — which repo owns the fix (`consumer` / `design-repo` /
+  `both`) depends on the root cause and is decided at DIAGNOSE (Axis B), not at intake.
+
+When absent, `multi_repo` defaults to `false` and the cross-repo guards stay dormant (single-repo
+behaviour is unchanged).
+
 ## Axis A vs Axis B (why two moments)
 
 - **At intake (now):** Axis A = symptom layer → routes Reproduce.
@@ -63,4 +77,5 @@ layer-agent and the adapter's Reproduce recipe.
 - It does not reproduce, diagnose, or fix anything — it only classifies the symptom.
 - It does not assign `root_cause` or `root_cause_layer` (that is diagnosis / Axis B).
 - It does not decide capability tier or verification method (see the `verification` skill).
+- It does not scan `node_modules` to detect `multi_repo`, nor decide `fix_source` (Axis B / DIAGNOSE).
 - It does not author features or answer general questions — only existing defects are triaged.

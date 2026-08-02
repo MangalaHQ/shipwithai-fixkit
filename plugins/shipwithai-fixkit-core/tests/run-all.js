@@ -49,6 +49,11 @@ section('1. Frontmatter parser unit tests');
   assert(typeof fm.verification === 'object' && fm.verification.capability_tier === 'FULL', 'nested verification object parsed');
   assert(fm.verification.evidence === '', 'nested quoted-empty evidence -> empty string');
   assert(Array.isArray(fm.hard_lock_violations), 'hard_lock_violations -> array');
+  // The 3 new fix_source fields are all top-level scalars the existing parser already handles.
+  const fm2 = parseFrontmatter('---\nmulti_repo: true\nfix_source: consumer\npending_followup: none\n---\nbody');
+  assert(fm2.multi_repo === true, 'multi_repo: true -> bool (no parser change needed)');
+  assert(fm2.fix_source === 'consumer', 'fix_source scalar -> string');
+  assert(fm2.pending_followup === 'none', 'pending_followup scalar -> string');
 }
 
 // 2. ACCEPTANCE #1 — HAPPY PATH ---------------------------------------------
@@ -255,6 +260,113 @@ section('6e. Pattern miner — structural scope-token clustering');
   assert(dupR2.candidates.length === 1 && dupR2.candidates[0].count === 2 &&
     dupR2.candidates[0].bug_ids.join(',') === 'DUP-1,DUP-2',
     'distinct-id: count + cited bug_ids are deduped to the 2 distinct ids', JSON.stringify(dupR2.candidates[0] && dupR2.candidates[0].bug_ids));
+}
+
+// 6f. CROSS-REPO fix_source GUARDS (multi-repo design-system seam) ----------
+section('6f. cross-repo fix_source guards (multi_repo classification)');
+{
+  // (1) The 3 negatives REJECT with the right code (invariant surface, static fixtures).
+  const unset = validateLedger(readLedger('neg-fixsource.unset-multirepo.md'));
+  assert(!unset.ok && hasCode(unset, 'FIX_SOURCE_UNSET_MULTIREPO'),
+    'multi_repo post-root-cause with empty fix_source is REJECTED (FIX_SOURCE_UNSET_MULTIREPO)', JSON.stringify(unset.violations));
+
+  const edit = validateLedger(readLedger('neg-crossrepo.consumer-edit.md'));
+  assert(!edit.ok && hasCode(edit, 'CROSS_REPO_CONSUMER_EDIT'),
+    'design-repo fix_source at a consumer post-fix state is REJECTED (CROSS_REPO_CONSUMER_EDIT)', JSON.stringify(edit.violations));
+
+  const mismatch = validateLedger(readLedger('neg-fixsource.rootcause-mismatch.md'));
+  assert(!mismatch.ok && hasCode(mismatch, 'FIXSOURCE_ROOTCAUSE_MISMATCH'),
+    'design-repo fix_source with non-upstream root_cause_layer is REJECTED (FIXSOURCE_ROOTCAUSE_MISMATCH)', JSON.stringify(mismatch.violations));
+
+  // (1b) Finding #1: the CROSS_REPO_CONSUMER_EDIT invariant covers the FULL POST_ROOTCAUSE_STATES,
+  //      not just fixed/candidate. A design-repo ledger frozen at closed (all other guards
+  //      satisfied) is a false clean terminal and MUST be rejected by the static auditor.
+  const frozen = validateLedger(readLedger('neg-crossrepo.closed-terminal.md'));
+  assert(!frozen.ok && hasCode(frozen, 'CROSS_REPO_CONSUMER_EDIT'),
+    'design-repo fix_source frozen at closed is REJECTED (CROSS_REPO_CONSUMER_EDIT scope = POST_ROOTCAUSE_STATES)', JSON.stringify(frozen.violations));
+  // Same hole at verified (the other widened state) — inline snapshot, otherwise fully valid.
+  const frozenVerified = validateLedger({ state: 'verified', symptom_layer: 'Logic', root_cause: 'rc',
+    root_cause_layer: 'upstream', fix: 'f', multi_repo: true, fix_source: 'both', pending_followup: 'consumer',
+    verification: { method: 'test-run', capability_tier: 'FULL', evidence: 'e', verified_by: 'x' }, hard_lock_violations: [] });
+  assert(!frozenVerified.ok && hasCode(frozenVerified, 'CROSS_REPO_CONSUMER_EDIT'),
+    'both fix_source frozen at verified is REJECTED (CROSS_REPO_CONSUMER_EDIT widened scope)', JSON.stringify(frozenVerified.violations));
+
+  // (2) The 2 happies ACCEPT (correct off-ramp; both keeps pending_followup).
+  const esc = validateLedger(readLedger('crossrepo.escalated.md'));
+  assert(esc.ok, 'happy design-repo escalated is ACCEPTED', JSON.stringify(esc.violations));
+  const both = validateLedger(readLedger('crossrepo.both-followup.md'));
+  assert(both.ok, 'happy both escalated + pending_followup:consumer is ACCEPTED', JSON.stringify(both.violations));
+
+  // (3) Negative control (AC6): single-repo (multi_repo:false) does NOT regress — none of the
+  //     3 new codes fire even though fix_source is blank at a POST_ROOTCAUSE state.
+  const single = validateLedger({ state: 'fixed', root_cause: 'rc', fix: 'f', multi_repo: false, fix_source: '', hard_lock_violations: [] });
+  assert(!hasCode(single, 'FIX_SOURCE_UNSET_MULTIREPO') && !hasCode(single, 'CROSS_REPO_CONSUMER_EDIT') && !hasCode(single, 'FIXSOURCE_ROOTCAUSE_MISMATCH'),
+    'single-repo control: no new guard fires (multi_repo:false)', JSON.stringify(single.violations));
+
+  // (3b) Finding #2: FIXSOURCE_ROOTCAUSE_MISMATCH is gated on multi_repo === true, matching its
+  //      header comment and ledger.schema.md ("the last three activate only when multi_repo").
+  //      A single-repo ledger with a (contradictory) design-repo fix_source does NOT fire it.
+  const singleMismatch = validateLedger({ state: 'diagnosed', root_cause: 'rc', multi_repo: false, fix_source: 'design-repo', root_cause_layer: 'Logic', hard_lock_violations: [] });
+  assert(!hasCode(singleMismatch, 'FIXSOURCE_ROOTCAUSE_MISMATCH'),
+    'single-repo control: FIXSOURCE_ROOTCAUSE_MISMATCH gated on multi_repo (contract match)', JSON.stringify(singleMismatch.violations));
+
+  // (4) MUTATION — FIX_SOURCE_UNSET_MULTIREPO is load-bearing on multi_repo === true: flip the gate
+  //     off (multi_repo:false, same otherwise) and the REJECT becomes ACCEPT for that code.
+  const mUnsetOff = validateLedger({ state: 'fixed', root_cause: 'rc', fix: 'f', multi_repo: false, fix_source: '', hard_lock_violations: [] });
+  assert(!hasCode(mUnsetOff, 'FIX_SOURCE_UNSET_MULTIREPO'),
+    'mutation: flipping multi_repo off flips FIX_SOURCE_UNSET_MULTIREPO REJECT->ACCEPT (guard bites)');
+  // Second control: multi_repo:true with fix_source set -> ACCEPT (the field is what satisfies it).
+  const mUnsetSet = validateLedger({ state: 'fixed', root_cause: 'rc', fix: 'f', multi_repo: true, fix_source: 'consumer', hard_lock_violations: [] });
+  assert(!hasCode(mUnsetSet, 'FIX_SOURCE_UNSET_MULTIREPO'), 'control: multi_repo with fix_source:consumer does not fire the unset guard');
+
+  // (5) MUTATION — FIXSOURCE_ROOTCAUSE_MISMATCH is load-bearing on root_cause_layer: set it to
+  //     'upstream' (same otherwise) and the REJECT becomes ACCEPT for that code.
+  const mMismatchFixed = validateLedger({ state: 'diagnosed', root_cause: 'rc', multi_repo: true, fix_source: 'design-repo', root_cause_layer: 'upstream', hard_lock_violations: [] });
+  assert(!hasCode(mMismatchFixed, 'FIXSOURCE_ROOTCAUSE_MISMATCH'),
+    'mutation: root_cause_layer:upstream flips FIXSOURCE_ROOTCAUSE_MISMATCH REJECT->ACCEPT (guard bites)');
+
+  // (6) CROSS_REPO_CONSUMER_EDIT transition surface: a design-repo ledger cannot enter_fixed in the
+  //     consumer — REFUSED, state stays diagnosed.
+  const xrSeed = { state: 'diagnosed', root_cause: 'rc', multi_repo: true, fix_source: 'design-repo', root_cause_layer: 'upstream', verification: {} };
+  const xrFixed = applyTransition(xrSeed, 'enter_fixed');
+  assert(!xrFixed.ok && hasCode(xrFixed, 'CROSS_REPO_CONSUMER_EDIT'), 'enter_fixed REFUSED for design-repo (transition surface)', JSON.stringify(xrFixed.violations));
+  assert(xrFixed.ledger.state === 'diagnosed', 'state did not advance past diagnosed (cross-repo block)', xrFixed.ledger.state);
+
+  // (7) MUTATION — CROSS_REPO_CONSUMER_EDIT is load-bearing on fix_source: with fix_source:consumer
+  //     the SAME enter_fixed SUCCEEDS (REFUSE->ACCEPT), proving the field bites.
+  const mConsumer = applyTransition({ ...xrSeed, fix_source: 'consumer', root_cause_layer: 'Logic' }, 'enter_fixed');
+  assert(mConsumer.ok && mConsumer.ledger.state === 'fixed', 'mutation: fix_source:consumer lets enter_fixed SUCCEED (guard bites)', JSON.stringify(mConsumer.violations));
+
+  // (8) The correct off-ramp is not a dead end: escalate on the same design-repo ledger SUCCEEDS.
+  const xrEsc = applyTransition(xrSeed, 'escalate');
+  assert(xrEsc.ok && xrEsc.ledger.state === 'escalated', 'design-repo ledger CAN escalate (correct off-ramp, not a dead end)', JSON.stringify(xrEsc.violations));
+}
+
+// 6g. CROSS-REPO-HANDOFF/v0 FORMAT (remediation handoff; distinct from handoff/v0) ------
+section('6g. cross-repo-handoff/v0 format');
+{
+  const { validateCrossRepoHandoff } = require('../lib/cross-repo-handoff-validator');
+  const valid = {
+    version: 'cross-repo-handoff/v0', bug_id: 'BUG-0104',
+    target_repo: '@mangalahq/shipwithai-sot-design', root_cause_ref: '.fixkit/BUG-0104.md',
+    remediation: 'fix DS token map -> publish minor -> bump consumer dep',
+    sequence: ['fix --sl-color-tip-* map in DS', 'publish 1.4.0', 'bump consumer dep to 1.4.0'],
+    pending_followup: 'consumer',
+  };
+  const okX = validateCrossRepoHandoff(valid);
+  assert(okX.ok, 'a complete cross-repo-handoff/v0 is ACCEPTED', JSON.stringify(okX.violations));
+
+  const noTarget = validateCrossRepoHandoff(Object.assign({}, valid, { target_repo: '' }));
+  assert(!noTarget.ok && noTarget.violations.some((x) => x.code === 'XREPO_NO_TARGET_REPO'), 'missing target_repo is REJECTED', JSON.stringify(noTarget.violations));
+
+  const badSeq = validateCrossRepoHandoff(Object.assign({}, valid, { sequence: [] }));
+  assert(!badSeq.ok && badSeq.violations.some((x) => x.code === 'XREPO_NO_SEQUENCE'), 'empty sequence is REJECTED', JSON.stringify(badSeq.violations));
+
+  const badVer = validateCrossRepoHandoff(Object.assign({}, valid, { version: 'handoff/v0' }));
+  assert(!badVer.ok && badVer.violations.some((x) => x.code === 'XREPO_BAD_VERSION'), 'wrong version is REJECTED', JSON.stringify(badVer.violations));
+
+  const badFollowup = validateCrossRepoHandoff(Object.assign({}, valid, { pending_followup: 'maybe' }));
+  assert(!badFollowup.ok && badFollowup.violations.some((x) => x.code === 'XREPO_BAD_FOLLOWUP'), 'bad pending_followup enum is REJECTED', JSON.stringify(badFollowup.violations));
 }
 
 // 7. CONVENTION + EVAL-SCHEMA LINTERS (BLOCKING) ----------------------------

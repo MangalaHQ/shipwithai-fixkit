@@ -37,9 +37,20 @@ question the design.
 If no runner is available, you are **ASSIST**: emit a `handoff/v0` and stop at `candidate` — do
 not mark closed.
 
+## Fix-source gate (multi-repo primary prevention)
+
+After DIAGNOSE, before you propose any fix, answer: **"is the root cause in the design-system
+package or in our repo?"** and set `fix_source`. When `fix_source ∈ {design-repo, both}` (root cause
+is an upstream DS organism), do **not** edit the consumer: gap-log, emit a `cross-repo-handoff/v0`,
+and let the bug end `escalated` (for `both`, also record `pending_followup: consumer`). This is the
+**primary prevention**; the ledger guards (`CROSS_REPO_CONSUMER_EDIT`, `FIX_SOURCE_UNSET_MULTIREPO`,
+`FIXSOURCE_ROOTCAUSE_MISMATCH`) are only the backstop.
+
 ## What this agent does NOT do
 
 - It does not handle UI or System symptoms — it hands those back for re-dispatch.
 - It does not propose a fix before writing a root cause (Iron Law).
+- It does not fix in the consumer when `fix_source ∈ {design-repo, both}` — it emits a cross-repo
+  handoff and escalates (it never sets `fixed`/`candidate` there).
 - It does not close the ledger; the orchestrator's integrity check does.
 - It does not bundle refactors or "while I'm here" changes into the fix.

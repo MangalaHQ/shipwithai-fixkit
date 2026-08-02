@@ -13,8 +13,9 @@ guard → integrity-close`. Off-ramp: 3 failed fixes or a design-organism root c
 
 ## Rule codes (shared vocabulary)
 `IRON_LAW_FIX_BEFORE_ROOT_CAUSE` · `INTEGRITY_EVIDENCE_EMPTY` · `INTEGRITY_VERIFIER_MISSING` ·
-`ASSIST_CANNOT_CLOSE` · `VERIFICATION_LAYER_MISMATCH` · `THREE_STRIKES_NO_ESCALATION`. Cited by both
-`commands/fix.md` and the validator.
+`ASSIST_CANNOT_CLOSE` · `VERIFICATION_LAYER_MISMATCH` · `THREE_STRIKES_NO_ESCALATION` ·
+`FIX_SOURCE_UNSET_MULTIREPO` · `CROSS_REPO_CONSUMER_EDIT` · `FIXSOURCE_ROOTCAUSE_MISMATCH`. Cited by
+both `commands/fix.md` and the validator.
 
 ## Files
 - `commands/fix.md` — orchestrator entry.

@@ -278,6 +278,19 @@ section('6f. cross-repo fix_source guards (multi_repo classification)');
   assert(!mismatch.ok && hasCode(mismatch, 'FIXSOURCE_ROOTCAUSE_MISMATCH'),
     'design-repo fix_source with non-upstream root_cause_layer is REJECTED (FIXSOURCE_ROOTCAUSE_MISMATCH)', JSON.stringify(mismatch.violations));
 
+  // (1b) Finding #1: the CROSS_REPO_CONSUMER_EDIT invariant covers the FULL POST_ROOTCAUSE_STATES,
+  //      not just fixed/candidate. A design-repo ledger frozen at closed (all other guards
+  //      satisfied) is a false clean terminal and MUST be rejected by the static auditor.
+  const frozen = validateLedger(readLedger('neg-crossrepo.closed-terminal.md'));
+  assert(!frozen.ok && hasCode(frozen, 'CROSS_REPO_CONSUMER_EDIT'),
+    'design-repo fix_source frozen at closed is REJECTED (CROSS_REPO_CONSUMER_EDIT scope = POST_ROOTCAUSE_STATES)', JSON.stringify(frozen.violations));
+  // Same hole at verified (the other widened state) — inline snapshot, otherwise fully valid.
+  const frozenVerified = validateLedger({ state: 'verified', symptom_layer: 'Logic', root_cause: 'rc',
+    root_cause_layer: 'upstream', fix: 'f', multi_repo: true, fix_source: 'both', pending_followup: 'consumer',
+    verification: { method: 'test-run', capability_tier: 'FULL', evidence: 'e', verified_by: 'x' }, hard_lock_violations: [] });
+  assert(!frozenVerified.ok && hasCode(frozenVerified, 'CROSS_REPO_CONSUMER_EDIT'),
+    'both fix_source frozen at verified is REJECTED (CROSS_REPO_CONSUMER_EDIT widened scope)', JSON.stringify(frozenVerified.violations));
+
   // (2) The 2 happies ACCEPT (correct off-ramp; both keeps pending_followup).
   const esc = validateLedger(readLedger('crossrepo.escalated.md'));
   assert(esc.ok, 'happy design-repo escalated is ACCEPTED', JSON.stringify(esc.violations));
@@ -289,6 +302,13 @@ section('6f. cross-repo fix_source guards (multi_repo classification)');
   const single = validateLedger({ state: 'fixed', root_cause: 'rc', fix: 'f', multi_repo: false, fix_source: '', hard_lock_violations: [] });
   assert(!hasCode(single, 'FIX_SOURCE_UNSET_MULTIREPO') && !hasCode(single, 'CROSS_REPO_CONSUMER_EDIT') && !hasCode(single, 'FIXSOURCE_ROOTCAUSE_MISMATCH'),
     'single-repo control: no new guard fires (multi_repo:false)', JSON.stringify(single.violations));
+
+  // (3b) Finding #2: FIXSOURCE_ROOTCAUSE_MISMATCH is gated on multi_repo === true, matching its
+  //      header comment and ledger.schema.md ("the last three activate only when multi_repo").
+  //      A single-repo ledger with a (contradictory) design-repo fix_source does NOT fire it.
+  const singleMismatch = validateLedger({ state: 'diagnosed', root_cause: 'rc', multi_repo: false, fix_source: 'design-repo', root_cause_layer: 'Logic', hard_lock_violations: [] });
+  assert(!hasCode(singleMismatch, 'FIXSOURCE_ROOTCAUSE_MISMATCH'),
+    'single-repo control: FIXSOURCE_ROOTCAUSE_MISMATCH gated on multi_repo (contract match)', JSON.stringify(singleMismatch.violations));
 
   // (4) MUTATION — FIX_SOURCE_UNSET_MULTIREPO is load-bearing on multi_repo === true: flip the gate
   //     off (multi_repo:false, same otherwise) and the REJECT becomes ACCEPT for that code.

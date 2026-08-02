@@ -59,7 +59,7 @@ open -> reproduced -> diagnosed -> (gated) -> fixed | candidate -> verified -> c
 | 3-strikes | `THREE_STRIKES_NO_ESCALATION` | `3_strikes_count >= 3` requires `state: escalated` |
 | Hard-lock (pre-fix) | `HARD_LOCK_VIOLATION` | cannot enter `fixed`/`candidate` (or sit at any post-fix state) while `hard_lock_violations` is non-empty — an org pack populates it pre-fix; resolve the lock or escalate first |
 | fix_source unset (pre-fix) | `FIX_SOURCE_UNSET_MULTIREPO` | when `multi_repo == true`, cannot sit at any `POST_ROOTCAUSE_STATE` with an empty `fix_source` — classify which repo owns the fix first |
-| Cross-repo consumer edit (pre-fix) | `CROSS_REPO_CONSUMER_EDIT` | when `fix_source ∈ {design-repo, both}`, cannot enter `fixed`/`candidate` in the consumer — escalate and emit a cross-repo handoff instead |
+| Cross-repo consumer edit (pre-fix) | `CROSS_REPO_CONSUMER_EDIT` | when `fix_source ∈ {design-repo, both}`, cannot sit at any consumer `POST_ROOTCAUSE_STATE` (`fixed`/`candidate`/`verified`/`closed`) — escalate and emit a cross-repo handoff instead |
 | fix_source ↔ root_cause_layer (invariant) | `FIXSOURCE_ROOTCAUSE_MISMATCH` | `fix_source ∈ {design-repo, both} ⇒ root_cause_layer == upstream` (a package-owned fix must have an upstream root cause) |
 
 The last three activate only when `multi_repo == true` — single-repo ledgers are unaffected.
